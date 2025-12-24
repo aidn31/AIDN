@@ -1,30 +1,45 @@
 # AIDN Architecture
 
-**Last Updated:** December 24, 2025
-**Status:** PRODUCTION READY
+**Last Updated:** December 24, 2025 - 2:30 PM
+**Status:** PRODUCTION-READY PLATFORM
 
 ---
 
-## System Overview
+## System Overview - Production Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                     STREAMLIT DASHBOARD                         │
-│                    (http://localhost:8502)                     │
+│                REACT DASHBOARD (Production)                     │
+│               (http://localhost:3000)                           │
+│  Professional YC-quality UI with real-time updates             │
 └─────────────────────────┬───────────────────────────────────────┘
-                          │ Real-time updates
+                          │ HTTP/REST API
+                          ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    FASTAPI BACKEND                              │
+│               (http://localhost:8000)                           │
+│  RESTful API • File Upload • CORS • Error Handling             │
+└─────────────────────────┬───────────────────────────────────────┘
+                          │ Database operations
                           ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                  POSTGRESQL DATABASE                            │
 │  Tables: leads, agent_profiles, agent_availability,             │
 │          agent_territories, appointment_slots, call_logs        │
+│  Features: Territory assignment • File processing               │
 └─────────────────────────┬───────────────────────────────────────┘
-                          │ Database operations
+                          │ Voice agent queries
                           ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                 AIDN VOICE AGENT (LiveKit)                      │
-│  Stack: LiveKit + Twilio + Deepgram + OpenAI + ElevenLabs      │
+│  Stack: LiveKit + Twilio + Deepgram + OpenAI                   │
 │  Worker ID: AW_pfC62LYxQhvV (Registered & Active)              │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│             LEGACY STREAMLIT DASHBOARD                          │
+│                (http://localhost:8502)                         │
+│  Backup interface for development and debugging                │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -34,24 +49,44 @@
 
 | Component | Technology | Status | Configuration |
 |-----------|------------|--------|---------------|
+| **Frontend** | React + Next.js + TypeScript | 🟢 PRODUCTION | Professional interface on port 3000 |
+| **Backend API** | FastAPI + Python | 🟢 PRODUCTION | RESTful API on port 8000 |
 | **Voice Agent** | LiveKit v1.3.10 | 🟢 ACTIVE | Cloud worker registered |
 | **Phone Calls** | Twilio | 🟢 CONFIGURED | +18136380935 |
 | **Speech-to-Text** | Deepgram Nova-2 | 🟢 ACTIVE | Real-time transcription |
 | **Text-to-Speech** | OpenAI TTS | 🟢 ACTIVE | "echo" voice profile |
 | **LLM** | OpenAI GPT-4-mini | 🟢 ACTIVE | Temperature 0.7 |
 | **Database** | PostgreSQL | 🟢 ACTIVE | Local instance with full schema |
-| **Dashboard** | Streamlit | 🟢 RUNNING | Port 8502 |
+| **File Upload** | PDF/OCR + CSV Processing | 🟢 ACTIVE | Drag-and-drop interface |
+| **Territory Mgmt** | Multi-agent assignment | 🟢 ACTIVE | Geographic territory system |
+| **Legacy Dashboard** | Streamlit | 🟢 BACKUP | Port 8502 for debugging |
+| **Deployment** | Docker + Prometheus | 🟢 READY | Production infrastructure |
 
 ---
 
 ## Key Architectural Decisions - FINAL IMPLEMENTATION
 
-### December 24, 2025 - Production Architecture
-**Decision:** Unified AIDN implementation with production-ready components
-- **Source:** Consolidated from 3 workshop implementations
-- **Structure:** Modular architecture with shared models and database layer
-- **Database:** AIDN_SPECIFICATION.md schema fully implemented
-- **Deployment:** Ready for containerization and cloud deployment
+### December 24, 2025 - Production Platform Architecture
+**Decision:** Complete transformation to production-ready platform architecture
+- **Source:** Evolved from unified prototype to production platform
+- **Frontend:** React + Next.js + TypeScript replacing Streamlit prototype
+- **Backend:** FastAPI RESTful architecture for scalable API operations
+- **File Processing:** Enterprise-grade PDF/OCR upload with intelligent validation
+- **Territory Management:** Multi-agent geographic assignment system
+- **Deployment:** Docker infrastructure with monitoring and observability
+
+### Production Architecture Benefits
+**Scalability:**
+- **Microservices Ready:** Frontend and backend completely decoupled
+- **API-First Design:** RESTful endpoints support multiple client interfaces
+- **Database Optimization:** Territory assignment and file processing at scale
+- **Real-time Updates:** WebSocket support for live dashboard updates
+
+**Professional User Experience:**
+- **YC-Quality Interface:** Modern React dashboard builds customer confidence
+- **Drag-and-Drop Upload:** Professional file import with validation and error handling
+- **Real-time Feedback:** Instant status updates and progress indicators
+- **Responsive Design:** Works across desktop, tablet, and mobile devices
 
 ### Voice Technology Stack - PRODUCTION VALIDATED
 - **Voice Agent:** LiveKit cloud deployment (proven stable)

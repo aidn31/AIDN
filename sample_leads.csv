@@ -1,0 +1,6 @@
+first_name,last_name,phone,address,city,county,state,zip_code,lead_type,lead_source
+John,Doe,5551234567,123 Main St,Chicago,Cook,IL,60601,final_expense,online_form
+Jane,Smith,5555551234,456 Oak Ave,Springfield,Sangamon,IL,62701,term_life,direct_mail
+Robert,Johnson,5559876543,789 Pine Rd,Peoria,Peoria,IL,61601,whole_life,referral
+Mary,Williams,5551112222,321 Elm St,Rockford,Winnebago,IL,61101,final_expense,social_media
+Michael,Brown,5553334444,654 Maple Dr,Aurora,Kane,IL,60505,term_life,online_form
