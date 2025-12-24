@@ -16,7 +16,8 @@ from datetime import datetime, timedelta
 from typing import List, Optional, Dict, Any
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, Query, UploadFile, File
+from fastapi import FastAPI, HTTPException, Query, UploadFile, File, Request
+from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
@@ -615,10 +616,68 @@ def process_lead_row(row: Dict[str, str], row_idx: int) -> Dict[str, Any]:
     return lead_data
 
 
+@app.post("/twilio-webhook")
+async def twilio_webhook(request: Request):
+    """
+    Twilio webhook endpoint that connects incoming calls to LiveKit voice agent.
+    This is called by Twilio when a call is answered.
+    
+    CRITICAL: Twilio sends form-urlencoded data, NOT JSON!
+    We must use Request object and return Response with text/xml content type.
+    """
+    try:
+        # Parse Twilio's form-urlencoded data (NOT JSON!)
+        form_data = await request.form()
+        
+        # Extract query parameters from URL (room, lead_id, agent_id come via query string)
+        query_params = request.query_params
+        room_name = query_params.get("room")
+        lead_id = query_params.get("lead_id")
+        agent_id = query_params.get("agent_id")
+        
+        # Log Twilio's form data
+        print(f"📞 Twilio webhook called")
+        print(f"🏠 Room: {room_name}, Lead: {lead_id}, Agent: {agent_id}")
+        print(f"📥 CallSid: {form_data.get('CallSid')}")
+        print(f"📱 To: {form_data.get('To')}")
+        print(f"📱 From: {form_data.get('From')}")
+        print(f"📊 CallStatus: {form_data.get('CallStatus')}")
+
+        # For now, return a simple TwiML response that says the system is connecting
+        # In full production, this would integrate with LiveKit to start the voice agent
+        twiml_response = """<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="Polly.Joanna">Hello, please hold while we connect you to your insurance benefits specialist.</Say>
+    <Pause length="2"/>
+    <Say voice="Polly.Joanna">We are currently setting up your call. This will take just a moment.</Say>
+    <Hangup/>
+</Response>"""
+
+        # Log the webhook call
+        print(f"✅ Webhook processed successfully for lead {lead_id}")
+
+        # CRITICAL: Return Response with text/xml content type for Twilio
+        return Response(content=twiml_response, media_type="text/xml")
+
+    except Exception as e:
+        print(f"❌ Webhook error: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        # Return error TwiML with proper content type
+        error_twiml = """<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="Polly.Joanna">We apologize, but we are experiencing technical difficulties. Please try calling back in a few minutes.</Say>
+    <Hangup/>
+</Response>"""
+        return Response(content=error_twiml, media_type="text/xml")
+
+
 if __name__ == "__main__":
     print("🚀 Starting AIDN API Server")
     print("📊 Dashboard: http://localhost:3000")
     print("🔌 API Docs: http://localhost:8000/docs")
+    print("📞 Twilio Webhook: /twilio-webhook")
 
     uvicorn.run(
         app,
