@@ -17,6 +17,7 @@ from livekit.plugins import deepgram, openai, silero
 from ..shared.database import DatabaseManager, LeadRepository, AppointmentRepository
 from ..shared.models import Lead, AppointmentSlot
 from .objection_handler import ObjectionHandler
+from .script_knowledge_base import ScriptKnowledgeBase, ScriptType, LeadType
 
 logger = logging.getLogger(__name__)
 
@@ -25,46 +26,83 @@ class AIDNVoiceAgent(Agent):
     """AIDN Voice Agent for insurance appointment booking."""
 
     def __init__(self, db_manager: DatabaseManager):
-        # Initialize with insurance-specific instructions
+        # Initialize with new casual, friendly persona
         super().__init__(
-            instructions="""You are AIDN, a friendly AI voice assistant calling on behalf of an insurance agency.
+            instructions="""You are calling on behalf of an insurance benefits center. You have a casual, friendly personality - like someone they already know.
 
-Your role is to:
-1. Call leads who requested insurance information
-2. Qualify their interest in a warm, natural way
-3. Book appointments with human agents
-4. Handle objections professionally
+CRITICAL PERSONA CHARACTERISTICS:
+- Speak SLOWLY and relaxed, not rushed
+- Sound busy but friendly - like you're squeezing them in as a favor
+- Use casual language: "gonna", "ya", "umm", "let me see here"
+- Add natural speech patterns and filler words
+- Assume familiarity - greet like you know them already
+- NOT professional or corporate sounding - this is a casual conversation
 
-Conversation Style:
-- Sound like a warm, friendly person (not robotic)
-- Use natural speech patterns with verbal affirmations
-- Build rapport before transitioning to appointment booking
-- Be conversational and empathetic
+SPEECH PATTERNS TO USE:
+- "Hey [Name]!" (not "Hello, am I speaking with...")
+- "umm", "hmm", "ya know", "let me see here"
+- "gonna" instead of "going to"
+- "wanna" instead of "want to"
+- "ya" instead of "you"
 
-Key Rules:
-- NEVER discuss specific policy details, prices, or coverage amounts
-- NEVER provide insurance advice or recommendations
-- Always redirect insurance questions to the human agent
-- If someone says "Do Not Call", immediately respect that request
-- Keep calls focused on appointment booking, not sales
+CONVERSATION FLOW:
+1. Casual greeting with their name
+2. Say you're calling from benefits center in their county
+3. Mention you have info ready to go out to them
+4. Verify their address casually
+5. Set appointment for tomorrow (morning or afternoon options)
+6. Confirm with agent description and car info
 
-Your goal is to book quality appointments where prospects are genuinely interested and likely to show up."""
+TONE EXAMPLE:
+"Hey Joe! This is Mike, umm, I'm calling from the benefits center here in Cook County... so we've got this package of info ready to go out to ya, and I was just making sure you still live at 123 Main Street, is that right?"
+
+OBJECTION HANDLING:
+- "What is it?" → Explain cash benefit programs for their age group, offer morning/afternoon
+- If they ask "What is it?" again → Mention updated 2024 programs, still offer times
+- Stay casual and friendly throughout
+
+NEVER discuss specific policy details or give insurance advice. Your only job is to book the appointment."""
         )
 
         self.db_manager = db_manager
         self.lead_repo = LeadRepository(db_manager)
         self.appointment_repo = AppointmentRepository(db_manager)
         self.objection_handler = ObjectionHandler()
+        self.script_kb = ScriptKnowledgeBase()
 
         # Current call context
         self.current_lead: Optional[Lead] = None
         self.current_agent_id: Optional[UUID] = None
+        self.agent_info: Optional[dict] = None
 
-    async def set_call_context(self, lead: Lead, agent_id: UUID):
+    async def set_call_context(self, lead: Lead, agent_id: UUID, agent_info: dict = None):
         """Set the current lead and agent for the call."""
         self.current_lead = lead
         self.current_agent_id = agent_id
+        self.agent_info = agent_info or {}
         logger.info(f"Set call context for lead {lead.id} with agent {agent_id}")
+
+    @function_tool
+    async def get_greeting_script(self, context: RunContext) -> str:
+        """Get the appropriate greeting script based on lead type."""
+        if not self.current_lead:
+            return "Hey there! This is calling from the benefits center..."
+
+        # Get script from knowledge base
+        script = self.script_kb.get_script(
+            script_type=ScriptType.GREETING,
+            lead=self.current_lead
+        )
+
+        if script:
+            return self.script_kb.format_script(
+                script=script,
+                lead=self.current_lead,
+                agent_info=self.agent_info
+            )
+
+        # Fallback greeting
+        return f"Hey {self.current_lead.first_name}! This is calling from the benefits center here in {self.current_lead.county}..."
 
     @function_tool
     async def get_available_appointments(self, context: RunContext, preferred_days: str = "this week") -> str:
@@ -86,14 +124,28 @@ Your goal is to book quality appointments where prospects are genuinely interest
             if not slots:
                 return "Let me check the schedule... I don't see any openings in the next couple days. Would next week work better for you?"
 
-            # Format available times naturally
-            formatted_slots = []
-            for slot in slots[:3]:  # Limit to 3 options
-                day_name = slot.date.strftime("%A")  # Monday, Tuesday, etc.
-                time_str = slot.time.strftime("%I:%M %p")  # 2:00 PM
-                formatted_slots.append(f"{day_name} at {time_str}")
+            # Use casual tone for appointment options
+            morning_slot = None
+            afternoon_slot = None
 
-            return f"I have some openings: {', '.join(formatted_slots[:2])} or {formatted_slots[2] if len(formatted_slots) > 2 else 'another time'}"
+            for slot in slots:
+                hour = slot.time.hour
+                if not morning_slot and 8 <= hour <= 11:
+                    morning_slot = slot
+                elif not afternoon_slot and 13 <= hour <= 17:
+                    afternoon_slot = slot
+
+                if morning_slot and afternoon_slot:
+                    break
+
+            if morning_slot and afternoon_slot:
+                return "Great, well my job is pretty simple - get you the info and go over it with ya. Let me see here... they have me out there tomorrow around 8-9am and later around 3-4pm... which one works better for you?"
+            elif morning_slot:
+                return "Let me see here... I've got tomorrow morning around 8-9am available. Would that work for ya?"
+            elif afternoon_slot:
+                return "Looks like I've got tomorrow afternoon around 3-4pm open. Would that work for ya?"
+            else:
+                return "Umm, let me check the schedule... looks pretty tight tomorrow. Would the next day work better for ya?"
 
         except Exception as e:
             logger.error(f"Error getting appointments: {e}")
@@ -134,11 +186,29 @@ Your goal is to book quality appointments where prospects are genuinely interest
                         outcome="booked"
                     )
 
-                    # Format confirmation
-                    day_name = slot.date.strftime("%A, %B %d")
-                    time_str = slot.time.strftime("%I:%M %p")
+                    # Format confirmation using script knowledge base
+                    script = self.script_kb.get_script(ScriptType.CONFIRMATION, lead=self.current_lead)
 
-                    return f"Perfect! I've got you scheduled for {day_name} at {time_str}. The agent will call about 5 minutes before to confirm they're on their way."
+                    if script and self.agent_info:
+                        day_name = slot.date.strftime("%A")
+                        time_str = slot.time.strftime("%I:%M %p")
+
+                        confirmation = self.script_kb.format_script(
+                            script=script,
+                            lead=self.current_lead,
+                            agent_info=self.agent_info,
+                            day=day_name,
+                            time=time_str,
+                            address=self.current_lead.address if self.current_lead else "your address"
+                        )
+                        return confirmation
+                    else:
+                        # Fallback casual confirmation
+                        day_name = slot.date.strftime("%A")
+                        time_str = slot.time.strftime("%I:%M %p")
+                        agent_name = self.agent_info.get('agent_name', 'the agent') if self.agent_info else 'the agent'
+
+                        return f"Ok great, so that's {day_name} at {time_str} at your place. My name is {agent_name}, and I appreciate you and look forward to seeing you {day_name} at {time_str}. Take care, thank you, bye!"
                 else:
                     return "That time slot just got taken. Let me find another option for you."
             else:
@@ -150,12 +220,18 @@ Your goal is to book quality appointments where prospects are genuinely interest
 
     @function_tool
     async def handle_objection(self, context: RunContext, objection_type: str, customer_response: str) -> str:
-        """Handle common objections with appropriate responses."""
-        response = await self.objection_handler.handle_objection(
-            objection_type=objection_type,
-            customer_response=customer_response,
-            lead=self.current_lead
-        )
+        """Handle common objections with new casual responses."""
+
+        # Use the knowledge base for objection responses first
+        response = self.script_kb.get_objection_response(objection_type, self.current_lead)
+
+        if not response:
+            # Fall back to original objection handler
+            response = await self.objection_handler.handle_objection(
+                objection_type=objection_type,
+                customer_response=customer_response,
+                lead=self.current_lead
+            )
 
         # Log the objection for analytics
         logger.info(f"Handled objection: {objection_type} for lead {self.current_lead.id if self.current_lead else 'unknown'}")
