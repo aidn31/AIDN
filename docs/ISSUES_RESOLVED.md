@@ -16,45 +16,53 @@ This document tracks bugs and issues that have been fixed.
 
 ---
 
-## 🔴 Known Issues (Not Yet Resolved)
+## 🟢 Recently Resolved Issues
 
-### Twilio ↔ LiveKit Audio Bridge Not Implemented
+### [December 25, 2025] - Twilio ↔ LiveKit Audio Bridge Implemented
 
-**Status:** 🔴 CRITICAL - NOT STARTED
-**Discovered:** December 24, 2025
-**Impact:** Voice agent cannot speak on phone calls
+**Status:** 🟢 RESOLVED - TESTING REQUIRED
+**Resolved:** December 25, 2025
+**Impact:** Voice agent can now speak on phone calls (pending testing)
 
 **Problem:**
-The `/twilio-webhook` endpoint returns static TwiML `<Say>` messages. The AI voice agent (AIDNVoiceAgent) exists but is never connected to actual phone calls. Users hear a pre-recorded message instead of having a conversation with the AI.
+The `/twilio-webhook` endpoint was returning static TwiML `<Say>` messages. The AI voice agent (AIDNVoiceAgent) existed but was never connected to actual phone calls.
 
-**Current Behavior:**
-```
-Twilio initiates call → Phone rings → Webhook returns <Say> TwiML
-→ User hears static message → Call hangs up
-→ AI voice agent never participates
-```
+**Solution Implemented:**
 
-**Required Behavior:**
-```
-Twilio initiates call → Phone rings → Webhook returns <Stream> TwiML
-→ Audio streams via WebSocket to server → Server bridges to LiveKit room
-→ AIDNVoiceAgent joins room → Real-time AI conversation
-→ AI handles objections, books appointments
-```
+1. **Created TwilioAudioBridge class** (`src/voice_agent/twilio_audio_bridge.py`)
+   - Handles WebSocket connection from Twilio
+   - Bridges audio to/from LiveKit room
+   - Manages bidirectional streaming
 
-**Blocked Features:**
-- Real-time AI conversation on phone calls
-- Objection handling during live calls
-- Appointment booking during calls
-- Casual persona speaking to customers
+2. **Created AudioConverter class** (numpy-based, Python 3.14 compatible)
+   - μ-law to PCM16 conversion
+   - PCM16 to μ-law encoding
+   - Sample rate conversion (8kHz ↔ 16kHz)
 
-**Required Solution:**
-1. Implement WebSocket handler for Twilio `<Stream>`
-2. Bridge audio bidirectionally to/from LiveKit room
-3. Auto-join AIDNVoiceAgent when call connects
-4. Pass lead context for personalization
+3. **Added WebSocket endpoint** `/twilio-audio-stream`
+   - Receives Twilio stream events
+   - Creates TwilioAudioBridge per call
+   - Handles incoming/outgoing audio
 
-**Estimated Effort:** 2-3 days
+4. **Updated webhook** to return `<Stream>` TwiML
+   - Creates LiveKit room for each call
+   - Returns WebSocket URL for audio streaming
+
+5. **Updated voice agent main.py**
+   - Added room request handler
+   - Loads lead/agent context from metadata
+   - Auto-joins voice agent to room
+
+**Files Changed:**
+- `src/voice_agent/twilio_audio_bridge.py` (NEW)
+- `src/voice_agent/__init__.py` (lazy imports)
+- `src/voice_agent/main.py` (room handler)
+- `simple_api_server.py` (WebSocket endpoint)
+
+**Testing Required:**
+- End-to-end call test
+- Audio quality verification
+- Voice agent response testing
 
 ---
 

@@ -4,6 +4,63 @@ All notable changes to the AIDN project are documented in this file.
 
 ---
 
+## [1.2.0] - 2025-12-25 - AUDIO BRIDGE IMPLEMENTATION 🔊
+
+### 🎉 MAJOR MILESTONE: TWILIO ↔ LIVEKIT AUDIO BRIDGE COMPLETE
+
+This release implements the critical audio bridge that connects Twilio phone calls to the LiveKit voice agent, enabling real-time AI conversations on phone calls.
+
+### ✅ Added - Audio Bridge System
+
+- **TwilioAudioBridge Class**: Bidirectional audio streaming
+  - WebSocket connection handling for Twilio `<Stream>`
+  - Audio format conversion (μ-law ↔ PCM)
+  - LiveKit room connection and audio publishing
+  - Outgoing audio queue for voice agent responses
+
+- **AudioConverter Class**: Python 3.14 compatible audio conversion
+  - μ-law to PCM16 conversion using numpy (audioop was removed in Python 3.13)
+  - PCM16 to μ-law encoding for Twilio
+  - Sample rate conversion (8kHz ↔ 16kHz)
+
+- **WebSocket Endpoint**: `/twilio-audio-stream`
+  - Receives real-time audio from Twilio
+  - Bridges to LiveKit room
+  - Handles Twilio stream events (start, media, stop)
+
+- **Updated Twilio Webhook**: Returns `<Stream>` TwiML
+  - Creates LiveKit room for each call
+  - Connects audio via WebSocket URL
+  - Passes lead and agent context
+
+- **Voice Agent Room Handler**
+  - Auto-accepts AIDN call rooms
+  - Loads lead context from room metadata
+  - Loads agent info for personalization
+  - Connects voice agent with full context
+
+### 🔧 Technical Changes
+
+- **src/voice_agent/twilio_audio_bridge.py**: New file with complete bridge implementation
+- **src/voice_agent/__init__.py**: Updated with lazy imports to avoid heavy dependency loading
+- **src/voice_agent/main.py**: Added room request handler and context loading
+- **simple_api_server.py**: Added WebSocket endpoint and updated webhook
+
+### 🎯 Impact
+
+- Voice agent can now speak on actual phone calls (pending testing)
+- Real-time bidirectional audio streaming enabled
+- Lead context passed for personalized conversations
+- Python 3.14 compatibility maintained
+
+### 📊 Status
+
+- Audio bridge: ✅ IMPLEMENTED
+- End-to-end testing: 🟡 PENDING
+- Production deployment: 🟡 AFTER TESTING
+
+---
+
 ## [1.1.0] - 2025-12-24 - PRODUCTION-READY PLATFORM 🚀
 
 ### 🎉 MAJOR MILESTONE: PROTOTYPE → PRODUCTION TRANSFORMATION

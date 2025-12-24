@@ -1,53 +1,58 @@
 # AIDN Next Steps
 
-**Last Updated:** December 24, 2025 - 11:00 PM
+**Last Updated:** December 25, 2025 - 12:30 AM
 
 ---
 
-## 🚨 CRITICAL BLOCKER: Twilio ↔ LiveKit Audio Bridge
+## ✅ AUDIO BRIDGE IMPLEMENTED!
 
-**This is the #1 priority. Without this, the AI voice agent cannot speak on calls.**
+The critical Twilio ↔ LiveKit audio bridge has been implemented and is ready for testing.
 
-The voice agent code is written and working in isolation, but it's not connected to actual phone calls. The webhook currently returns static TwiML `<Say>` messages instead of bridging audio to LiveKit.
-
-### Required Implementation:
-- [ ] **Implement Twilio `<Stream>` WebSocket handler** - Receive real-time audio from Twilio
-- [ ] **Bridge audio to LiveKit room** - Send caller audio to where voice agent runs
-- [ ] **Bridge audio from LiveKit to Twilio** - Send AI responses back to caller
-- [ ] **Handle audio format conversion** - μ-law (Twilio) ↔ PCM (LiveKit)
-- [ ] **Connect AIDNVoiceAgent to room** - Join when call connects
-- [ ] **Pass lead context to agent** - Name, address, lead type for personalization
-
-**Estimated Time:** 2-3 days
-**Impact:** Enables all AI voice functionality
+### What Was Built (December 25, 2025):
+- [x] **WebSocket endpoint `/twilio-audio-stream`** - Receives real-time audio from Twilio
+- [x] **Audio format conversion** - μ-law ↔ PCM using numpy (Python 3.14 compatible)
+- [x] **LiveKit room creation** - Auto-creates room for each call
+- [x] **Bidirectional audio streaming** - TwilioAudioBridge class
+- [x] **Voice agent auto-join** - Connects with lead context from room metadata
+- [x] **Updated webhook** - Returns `<Stream>` TwiML instead of static `<Say>`
 
 ---
 
-## 🔥 IMMEDIATE PRIORITIES (This Week)
+## 🔥 IMMEDIATE PRIORITY: End-to-End Testing
 
-### Audio Bridge Implementation
-- [ ] Create WebSocket endpoint for Twilio `<Stream>`
-- [ ] Implement audio format conversion utilities
-- [ ] Set up LiveKit room creation on call connect
-- [ ] Bridge bidirectional audio streaming
-- [ ] Test end-to-end with real phone call
+### Test the Audio Bridge
+- [ ] Trigger test call via `/test-call` endpoint
+- [ ] Verify phone rings and answers
+- [ ] Confirm WebSocket connection established
+- [ ] Verify voice agent joins LiveKit room
+- [ ] Test AI speaks with casual persona
+- [ ] Validate bidirectional audio quality
 
-### Voice Agent Connection
-- [ ] Auto-join AIDNVoiceAgent when call connects
-- [ ] Pass lead data (name, address, county, lead type)
-- [ ] Pass agent data (description, car info)
-- [ ] Initialize Deepgram STT + GPT-4 + OpenAI TTS pipeline
-- [ ] Verify casual persona speaks correctly
+### Debug Any Issues
+- [ ] Check API server logs for errors
+- [ ] Monitor LiveKit room connections
+- [ ] Verify audio format conversion works
+- [ ] Test objection handling in live call
 
-### Dashboard Call Integration
+---
+
+## 📅 THIS WEEK (After Testing Passes)
+
+### Dashboard Call Integration (4-6 hours)
 - [ ] Wire up "Call" button onClick handler in leads page
-- [ ] Show real-time call status
+- [ ] Show real-time call status (ringing, connected, ended)
 - [ ] Display call outcome when complete
 - [ ] Enable calling from lead details modal
 
+### Voice Tuning (2-3 hours)
+- [ ] Adjust TTS speed to match "slow, relaxed" persona
+- [ ] Test different OpenAI voice options (echo, onyx, alloy)
+- [ ] Validate casual language patterns in live conversation
+- [ ] Fine-tune Deepgram STT settings for phone audio
+
 ---
 
-## 📅 WEEK 2 (After Audio Bridge)
+## 📅 WEEK 2 (Full Integration Testing)
 
 - [ ] Test full call flow: Ring → AI speaks → Handles objections → Books appointment
 - [ ] Validate appointment booking saves correctly to database
@@ -95,6 +100,16 @@ The voice agent code is written and working in isolation, but it's not connected
 
 ## ✅ COMPLETED
 
+### Audio Bridge Implementation (December 25, 2025) ⭐
+- [x] Create WebSocket endpoint for Twilio `<Stream>`
+- [x] Implement audio format conversion (μ-law ↔ PCM)
+- [x] Create TwilioAudioBridge class for bidirectional streaming
+- [x] Set up LiveKit room creation on call connect
+- [x] Update webhook to return `<Stream>` TwiML
+- [x] Voice agent auto-joins with lead context
+- [x] Fix Python 3.14 compatibility (audioop → numpy)
+- [x] Fix lazy imports to avoid loading heavy dependencies
+
 ### Infrastructure & UI (December 24, 2025)
 - [x] Consolidate 3 AIDN implementations into unified codebase
 - [x] Create database migration script aligned with AIDN_SPECIFICATION.md
@@ -133,12 +148,10 @@ The voice agent code is written and working in isolation, but it's not connected
 
 1. ✅ Dashboard can upload and manage leads
 2. ✅ Dashboard can initiate calls
-3. ❌ AI voice agent speaks with casual persona on call
-4. ❌ AI listens and responds to customer in real-time
-5. ❌ AI handles objections naturally
-6. ❌ AI books appointment during call
+3. 🟡 AI voice agent speaks with casual persona on call → TESTING
+4. 🟡 AI listens and responds to customer in real-time → TESTING
+5. 🟡 AI handles objections naturally → TESTING
+6. 🟡 AI books appointment during call → TESTING
 7. ✅ Appointment appears in dashboard
 
-**Current: 3/7 criteria met**
-
-The audio bridge is the critical missing piece that unlocks criteria 3-6.
+**Current: Audio bridge implemented, criteria 3-6 ready for testing**
