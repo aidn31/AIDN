@@ -1,0 +1,47 @@
+[project]
+name = "aidn"
+version = "0.1.0"
+description = "AI-Powered Insurance Distribution Network"
+authors = [
+    { name = "AIDN Team" }
+]
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "livekit-agents>=0.9.0",
+    "livekit-plugins-openai>=0.9.0",
+    "livekit-plugins-deepgram>=0.9.0",
+    "livekit-plugins-silero>=0.9.0",
+    "twilio>=8.0.0",
+    "supabase>=2.0.0",
+    "streamlit>=1.28.0",
+    "pandas>=2.0.0",
+    "python-dotenv>=1.0.0",
+    "asyncpg>=0.29.0",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "pydantic>=2.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "mypy>=1.5.0",
+]
