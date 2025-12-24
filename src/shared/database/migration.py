@@ -8,8 +8,12 @@ Migrates existing database schemas to the unified AIDN specification.
 import asyncio
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, time
 from typing import Optional
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 from .connection import DatabaseManager
 
@@ -97,8 +101,8 @@ class AIDNMigration:
             "john.smith@aidn.demo",
             "Male, 6 feet tall, brown hair, wearing a dark suit",
             "Silver Honda Accord, license plate ABC-1234",
-            "09:00:00",
-            "18:00:00",
+            time(9, 0),
+            time(18, 0),
             2
         )
 
@@ -203,13 +207,13 @@ class AIDNMigration:
         """Create agent availability schedule."""
         # Monday through Friday, 9 AM to 12 PM calling, max 4 appointments
         availability_data = [
-            (1, True, "09:00:00", "12:00:00", 4, "09:00:00"),  # Monday
-            (2, True, "09:00:00", "12:00:00", 4, "09:00:00"),  # Tuesday
-            (3, False, None, None, 0, None),                    # Wednesday (off)
-            (4, True, "09:00:00", "12:00:00", 5, "09:00:00"),  # Thursday
-            (5, True, "09:00:00", "12:00:00", 3, "09:00:00"),  # Friday
-            (6, True, "10:00:00", "13:00:00", 2, "10:00:00"),  # Saturday
-            (0, False, None, None, 0, None)                     # Sunday (off)
+            (1, True, time(9, 0), time(12, 0), 4, time(9, 0)),  # Monday
+            (2, True, time(9, 0), time(12, 0), 4, time(9, 0)),  # Tuesday
+            (3, False, None, None, 0, None),                     # Wednesday (off)
+            (4, True, time(9, 0), time(12, 0), 5, time(9, 0)),  # Thursday
+            (5, True, time(9, 0), time(12, 0), 3, time(9, 0)),  # Friday
+            (6, True, time(10, 0), time(13, 0), 2, time(10, 0)), # Saturday
+            (0, False, None, None, 0, None)                      # Sunday (off)
         ]
 
         query = """

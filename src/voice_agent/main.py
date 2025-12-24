@@ -94,7 +94,6 @@ def main():
     worker_options = WorkerOptions(
         entrypoint_fnc=entrypoint,
         prewarm_fnc=prewarm,
-        num_idle_procs=1,  # Keep one warm instance
     )
 
     # Run the agent

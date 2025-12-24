@@ -27,9 +27,7 @@ CREATE TABLE leads (
         'fresh', 'no_answer', 'not_interested', 'booked', 'callback',
         'disconnected', 'wrong_number', 'dnc'
     )) DEFAULT 'fresh',
-    is_active BOOLEAN DEFAULT true,
-
-    FOREIGN KEY (agent_id) REFERENCES agent_profiles(id)
+    is_active BOOLEAN DEFAULT true
 );
 
 -- Agent profiles table
@@ -110,6 +108,9 @@ CREATE TABLE call_logs (
     FOREIGN KEY (agent_id) REFERENCES agent_profiles(id)
 );
 
+-- Add foreign key constraints after all tables are created
+ALTER TABLE leads ADD CONSTRAINT fk_leads_agent_id FOREIGN KEY (agent_id) REFERENCES agent_profiles(id);
+
 -- Indexes for performance
 CREATE INDEX idx_leads_agent_id ON leads(agent_id);
 CREATE INDEX idx_leads_call_outcome ON leads(call_outcome);
@@ -149,17 +150,17 @@ CREATE OR REPLACE FUNCTION generate_appointment_slots(
     p_end_date DATE
 ) RETURNS INTEGER AS $$
 DECLARE
-    current_date DATE := p_start_date;
+    slot_date DATE := p_start_date;
     availability_record RECORD;
     slot_time TIME;
     slots_created INTEGER := 0;
 BEGIN
-    WHILE current_date <= p_end_date LOOP
+    WHILE slot_date <= p_end_date LOOP
         -- Get availability for this day of week
         SELECT * INTO availability_record
         FROM agent_availability
         WHERE agent_id = p_agent_id
-          AND day_of_week = EXTRACT(DOW FROM current_date)
+          AND day_of_week = EXTRACT(DOW FROM slot_date)
           AND is_available = true;
 
         IF FOUND THEN
@@ -169,7 +170,7 @@ BEGIN
             FOR i IN 1..availability_record.max_appointments LOOP
                 -- Insert slot if it doesn't exist
                 INSERT INTO appointment_slots (agent_id, date, time, status)
-                VALUES (p_agent_id, current_date, slot_time, 'available')
+                VALUES (p_agent_id, slot_date, slot_time, 'available')
                 ON CONFLICT (agent_id, date, time) DO NOTHING;
 
                 IF FOUND THEN
@@ -183,7 +184,7 @@ BEGIN
             END LOOP;
         END IF;
 
-        current_date := current_date + INTERVAL '1 day';
+        slot_date := slot_date + INTERVAL '1 day';
     END LOOP;
 
     RETURN slots_created;

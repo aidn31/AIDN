@@ -1,6 +1,6 @@
 """
-AIDN Dashboard - Streamlit Prototype
-===================================
+AIDN Dashboard - Standalone Demo
+================================
 
 Streamlit web interface for AIDN lead management and calling.
 """
@@ -9,18 +9,74 @@ import asyncio
 import pandas as pd
 import streamlit as st
 from datetime import datetime, date, timedelta
-from typing import List, Optional
+from typing import List, Dict, Any, Optional
 import os
 from dotenv import load_dotenv
+import psycopg2
+import psycopg2.extras
 
 # Load environment variables
 load_dotenv()
 
-# Import AIDN modules
-import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
-from streamlit_db import StreamlitDatabase
+class DemoDatabase:
+    """Simple synchronous database connection for Streamlit."""
+
+    def __init__(self):
+        self.connection_string = os.getenv("DATABASE_URL")
+        if not self.connection_string:
+            raise ValueError("DATABASE_URL environment variable is required")
+
+    def execute_query(self, query: str, params: tuple = None) -> List[Dict[str, Any]]:
+        """Execute a query and return results as list of dicts."""
+        try:
+            with psycopg2.connect(self.connection_string) as conn:
+                with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                    cur.execute(query, params or ())
+                    if cur.description:  # Query returns results
+                        return [dict(row) for row in cur.fetchall()]
+                    return []
+        except Exception as e:
+            st.error(f"Database query failed: {e}")
+            raise
+
+    def get_agents(self) -> List[Dict[str, Any]]:
+        """Get all active agents."""
+        query = """
+        SELECT id, agent_name, phone, email, physical_description, car_description
+        FROM agent_profiles
+        WHERE is_active = true
+        """
+        return self.execute_query(query)
+
+    def get_leads_for_agent(self, agent_id: str, limit: int = 100) -> List[Dict[str, Any]]:
+        """Get leads for an agent."""
+        query = """
+        SELECT id, first_name, last_name, phone, city, state, county,
+               lead_type, lead_source, call_outcome, call_count,
+               created_at, last_called_at, next_call_at
+        FROM leads
+        WHERE agent_id = %s AND is_active = true
+        ORDER BY
+            CASE call_outcome
+                WHEN 'fresh' THEN 1
+                WHEN 'callback' THEN 2
+                WHEN 'no_answer' THEN 3
+                ELSE 4
+            END,
+            created_at DESC
+        LIMIT %s
+        """
+        return self.execute_query(query, (agent_id, limit))
+
+    def test_connection(self) -> bool:
+        """Test database connection."""
+        try:
+            self.execute_query("SELECT 1")
+            return True
+        except:
+            return False
+
 
 # Configure Streamlit page
 st.set_page_config(
@@ -41,10 +97,11 @@ def init_database():
     """Initialize database connection."""
     if st.session_state.db is None:
         try:
-            st.session_state.db = StreamlitDatabase()
+            st.session_state.db = DemoDatabase()
             # Test connection
             if not st.session_state.db.test_connection():
                 raise Exception("Database connection test failed")
+            st.success("✅ Database connected successfully!")
         except Exception as e:
             st.error(f"Database initialization failed: {e}")
             st.session_state.db = None
@@ -69,11 +126,12 @@ def main():
     """Main Streamlit app."""
 
     st.title("📞 AIDN Dashboard")
-    st.markdown("AI-Powered Insurance Distribution Network")
+    st.markdown("**AI-Powered Insurance Distribution Network**")
+    st.markdown("---")
 
     # Sidebar for navigation
     with st.sidebar:
-        st.header("Navigation")
+        st.header("🎯 Navigation")
         page = st.selectbox(
             "Select Page",
             ["Dashboard", "Lead Management", "Calling", "Analytics", "Settings"]
@@ -83,26 +141,29 @@ def main():
     try:
         init_database()
     except Exception as e:
-        st.error(f"Database connection failed: {e}")
+        st.error(f"❌ Database connection failed: {e}")
+        st.info("Please ensure PostgreSQL is running and environment variables are set.")
         st.stop()
 
     # Agent selection
     try:
         agents = load_agents()
         if not agents:
-            st.warning("No active agents found. Please set up an agent profile first.")
-            if st.button("Create Test Agent"):
-                # Create a test agent for demo
-                create_test_agent()
+            st.warning("⚠️ No active agents found. Please set up an agent profile first.")
+            st.info("Check your database for agent_profiles table.")
             st.stop()
 
+        st.sidebar.markdown("---")
+        st.sidebar.header("👤 Agent Selection")
         agent_options = {f"{agent['agent_name']}": str(agent['id']) for agent in agents}
-        selected_agent_name = st.selectbox("Select Agent", list(agent_options.keys()))
+        selected_agent_name = st.sidebar.selectbox("Select Agent", list(agent_options.keys()))
         selected_agent_id = agent_options[selected_agent_name]
         st.session_state.current_agent = selected_agent_id
 
+        st.sidebar.success(f"✅ Agent: {selected_agent_name}")
+
     except Exception as e:
-        st.error(f"Error loading agents: {e}")
+        st.error(f"❌ Error loading agents: {e}")
         st.stop()
 
     # Page routing
@@ -120,7 +181,7 @@ def main():
 
 def show_dashboard():
     """Show main dashboard with overview."""
-    st.header("Dashboard Overview")
+    st.header("📊 Dashboard Overview")
 
     if not st.session_state.current_agent:
         st.warning("Please select an agent to view dashboard.")
@@ -134,25 +195,27 @@ def show_dashboard():
         col1, col2, col3, col4 = st.columns(4)
 
         with col1:
-            st.metric("Total Leads", len(leads))
+            st.metric("📋 Total Leads", len(leads))
 
         with col2:
             fresh_leads = len([l for l in leads if l['call_outcome'] == "fresh"])
-            st.metric("Fresh Leads", fresh_leads)
+            st.metric("🆕 Fresh Leads", fresh_leads)
 
         with col3:
             booked_leads = len([l for l in leads if l['call_outcome'] == "booked"])
-            st.metric("Appointments Booked", booked_leads)
+            st.metric("📅 Appointments Booked", booked_leads)
 
         with col4:
             if len(leads) > 0:
                 conversion_rate = (booked_leads / len(leads)) * 100
             else:
                 conversion_rate = 0
-            st.metric("Conversion Rate", f"{conversion_rate:.1f}%")
+            st.metric("📈 Conversion Rate", f"{conversion_rate:.1f}%")
+
+        st.markdown("---")
 
         # Recent leads table
-        st.subheader("Recent Leads")
+        st.subheader("📝 Recent Leads")
         if leads:
             df = pd.DataFrame([{
                 "Name": f"{lead['first_name']} {lead['last_name']}",
@@ -164,42 +227,24 @@ def show_dashboard():
             } for lead in leads[:10]])
             st.dataframe(df, use_container_width=True)
         else:
-            st.info("No leads found for this agent.")
+            st.info("ℹ️ No leads found for this agent.")
 
     except Exception as e:
-        st.error(f"Error loading dashboard data: {e}")
+        st.error(f"❌ Error loading dashboard data: {e}")
 
 
 def show_lead_management():
     """Show lead management interface."""
-    st.header("Lead Management")
+    st.header("📁 Lead Management")
 
-    tab1, tab2 = st.tabs(["Upload Leads", "Manage Leads"])
+    tab1, tab2 = st.tabs(["📤 Upload Leads", "📋 Manage Leads"])
 
     with tab1:
-        st.subheader("Upload New Leads")
-
-        uploaded_file = st.file_uploader(
-            "Choose a CSV file",
-            type=['csv'],
-            help="Upload a CSV file with lead data. Required columns: first_name, last_name, phone"
-        )
-
-        if uploaded_file is not None:
-            try:
-                df = pd.read_csv(uploaded_file)
-                st.write("Preview:")
-                st.dataframe(df.head(), use_container_width=True)
-
-                if st.button("Import Leads"):
-                    # Import leads logic would go here
-                    st.success(f"Successfully imported {len(df)} leads!")
-
-            except Exception as e:
-                st.error(f"Error reading file: {e}")
+        st.subheader("📤 Upload New Leads")
+        st.info("🔧 Lead upload functionality coming soon!")
 
     with tab2:
-        st.subheader("Manage Existing Leads")
+        st.subheader("📋 Manage Existing Leads")
 
         if st.session_state.current_agent:
             try:
@@ -210,13 +255,13 @@ def show_lead_management():
                     col1, col2 = st.columns(2)
                     with col1:
                         status_filter = st.multiselect(
-                            "Filter by Status",
+                            "🎯 Filter by Status",
                             ["fresh", "no_answer", "not_interested", "booked", "callback"],
                             default=["fresh", "callback"]
                         )
 
                     with col2:
-                        search_term = st.text_input("Search by name or phone")
+                        search_term = st.text_input("🔍 Search by name or phone")
 
                     # Apply filters
                     filtered_leads = [
@@ -225,38 +270,40 @@ def show_lead_management():
                         and (not search_term or search_term.lower() in f"{lead['first_name']} {lead['last_name']} {lead['phone']}".lower())
                     ]
 
+                    st.markdown(f"**📊 Showing {len(filtered_leads)} leads**")
+
                     # Display leads
                     for lead in filtered_leads[:20]:  # Limit to 20 for performance
-                        with st.expander(f"{lead['first_name']} {lead['last_name']} - {lead['phone']}"):
+                        with st.expander(f"👤 {lead['first_name']} {lead['last_name']} - {lead['phone']}"):
                             col1, col2, col3 = st.columns(3)
 
                             with col1:
-                                st.write(f"**Status:** {lead['call_outcome']}")
-                                st.write(f"**Lead Type:** {lead['lead_type'] or 'N/A'}")
-                                st.write(f"**Source:** {lead['lead_source'] or 'N/A'}")
+                                st.write(f"**📊 Status:** {lead['call_outcome']}")
+                                st.write(f"**🎯 Lead Type:** {lead['lead_type'] or 'N/A'}")
+                                st.write(f"**🔗 Source:** {lead['lead_source'] or 'N/A'}")
 
                             with col2:
-                                st.write(f"**City:** {lead['city'] or 'N/A'}")
-                                st.write(f"**State:** {lead['state'] or 'N/A'}")
-                                st.write(f"**Calls:** {lead['call_count']}")
+                                st.write(f"**🌆 City:** {lead['city'] or 'N/A'}")
+                                st.write(f"**🗺️ State:** {lead['state'] or 'N/A'}")
+                                st.write(f"**📞 Calls:** {lead['call_count']}")
 
                             with col3:
-                                st.write(f"**Created:** {lead['created_at'].strftime('%Y-%m-%d')}")
+                                st.write(f"**📅 Created:** {lead['created_at'].strftime('%Y-%m-%d')}")
                                 if lead['last_called_at']:
-                                    st.write(f"**Last Called:** {lead['last_called_at'].strftime('%Y-%m-%d %H:%M')}")
+                                    st.write(f"**📞 Last Called:** {lead['last_called_at'].strftime('%Y-%m-%d %H:%M')}")
                 else:
-                    st.info("No leads found.")
+                    st.info("ℹ️ No leads found.")
 
             except Exception as e:
-                st.error(f"Error loading leads: {e}")
+                st.error(f"❌ Error loading leads: {e}")
 
 
 def show_calling_interface():
     """Show calling interface."""
-    st.header("Calling Interface")
+    st.header("📞 Calling Interface")
 
     if not st.session_state.current_agent:
-        st.warning("Please select an agent to start calling.")
+        st.warning("⚠️ Please select an agent to start calling.")
         return
 
     try:
@@ -266,54 +313,53 @@ def show_calling_interface():
         if leads:
             lead = leads[0]
 
-            st.subheader("Next Lead to Call")
+            st.subheader("🎯 Next Lead to Call")
 
             col1, col2 = st.columns(2)
 
             with col1:
                 st.info(f"""
-                **Name:** {lead['first_name']} {lead['last_name']}
-                **Phone:** {lead['phone']}
-                **City:** {lead['city'] or 'N/A'}, {lead['state'] or 'N/A'}
-                **Lead Type:** {lead['lead_type'] or 'N/A'}
-                **Previous Attempts:** {lead['call_count']}
+                **👤 Name:** {lead['first_name']} {lead['last_name']}
+                **📞 Phone:** {lead['phone']}
+                **🌆 City:** {lead['city'] or 'N/A'}, {lead['state'] or 'N/A'}
+                **🎯 Lead Type:** {lead['lead_type'] or 'N/A'}
+                **📊 Previous Attempts:** {lead['call_count']}
                 """)
 
             with col2:
                 if st.button("📞 Call Lead", type="primary", use_container_width=True):
-                    with st.spinner("Initiating call..."):
-                        # In a real implementation, this would trigger the voice agent
-                        st.success("Call initiated! Check your phone system.")
+                    with st.spinner("🔄 Initiating call..."):
+                        st.success("✅ Call initiated! Check your phone system.")
 
                 if st.button("⏭️ Skip Lead", use_container_width=True):
-                    st.info("Lead skipped.")
+                    st.info("⏭️ Lead skipped.")
 
                 if st.button("❌ Mark as Do Not Call", use_container_width=True):
-                    st.warning("Lead marked as Do Not Call.")
+                    st.warning("❌ Lead marked as Do Not Call.")
 
         else:
-            st.info("No leads available for calling at this time.")
+            st.info("ℹ️ No leads available for calling at this time.")
 
         # Call history
-        st.subheader("Recent Call Activity")
-        st.info("Call logs would appear here in a real implementation.")
+        st.subheader("📋 Recent Call Activity")
+        st.info("📊 Call logs would appear here in a real implementation.")
 
     except Exception as e:
-        st.error(f"Error in calling interface: {e}")
+        st.error(f"❌ Error in calling interface: {e}")
 
 
 def show_analytics():
     """Show analytics dashboard."""
-    st.header("Analytics")
+    st.header("📊 Analytics")
 
     # Placeholder analytics
-    st.info("Analytics dashboard coming soon!")
+    st.info("📈 Advanced analytics dashboard coming soon!")
 
     # Mock data for visualization
     col1, col2 = st.columns(2)
 
     with col1:
-        st.subheader("Call Volume by Day")
+        st.subheader("📞 Call Volume by Day")
         chart_data = pd.DataFrame({
             'Day': ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
             'Calls': [25, 30, 28, 35, 22]
@@ -321,7 +367,7 @@ def show_analytics():
         st.bar_chart(chart_data.set_index('Day'))
 
     with col2:
-        st.subheader("Conversion Funnel")
+        st.subheader("🎯 Conversion Funnel")
         funnel_data = pd.DataFrame({
             'Stage': ['Leads', 'Connected', 'Interested', 'Booked'],
             'Count': [100, 45, 25, 12]
@@ -331,39 +377,17 @@ def show_analytics():
 
 def show_settings():
     """Show settings page."""
-    st.header("Settings")
+    st.header("⚙️ Settings")
 
-    tab1, tab2 = st.tabs(["Agent Profile", "System Settings"])
+    tab1, tab2 = st.tabs(["👤 Agent Profile", "🔧 System Settings"])
 
     with tab1:
-        st.subheader("Agent Profile Settings")
-
-        # Mock agent settings form
-        agent_name = st.text_input("Agent Name", value="John Smith")
-        phone = st.text_input("Phone", value="+1-555-0123")
-        email = st.text_input("Email", value="john@example.com")
-
-        st.text_area("Physical Description",
-                    value="Male, 6 feet tall, brown hair, wearing a dark suit")
-        st.text_input("Car Description",
-                     value="Silver Honda Accord")
-
-        if st.button("Save Profile"):
-            st.success("Profile saved successfully!")
+        st.subheader("👤 Agent Profile Settings")
+        st.info("🔧 Agent profile management coming soon!")
 
     with tab2:
-        st.subheader("System Settings")
-
-        st.selectbox("Time Zone", ["Eastern", "Central", "Mountain", "Pacific"])
-        st.slider("Max Calls Per Day", 1, 100, 50)
-        st.checkbox("Enable Call Recording", value=True)
-        st.checkbox("Send Daily Reports", value=True)
-
-
-def create_test_agent():
-    """Create a test agent for demo purposes."""
-    # This would create a test agent in the database
-    st.success("Test agent created successfully!")
+        st.subheader("🔧 System Settings")
+        st.info("⚙️ System configuration coming soon!")
 
 
 if __name__ == "__main__":
