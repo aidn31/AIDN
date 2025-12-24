@@ -12,7 +12,7 @@ from uuid import UUID
 
 from livekit import agents
 from livekit.agents import Agent, AgentSession, RunContext, function_tool
-from livekit.plugins import deepgram, openai, silero
+from livekit.plugins import deepgram, openai
 
 from ..shared.database import DatabaseManager, LeadRepository, AppointmentRepository
 from ..shared.models import Lead, AppointmentSlot
@@ -315,18 +315,15 @@ async def create_aidn_session(db_manager: DatabaseManager) -> AgentSession:
 
         # Large Language Model - fast and cost-effective
         llm=openai.LLM(
-            model="gpt-4.1-mini",
+            model="gpt-4o-mini",
             temperature=0.7,  # Slightly more conversational
         ),
 
         # Text-to-Speech - natural voice for insurance context
         tts=openai.TTS(
             voice="echo",  # Professional but warm voice
-            speed=1.1      # Slightly faster for efficiency
+            speed=0.9      # Slightly slower for casual persona
         ),
-
-        # Voice Activity Detection
-        vad=silero.VAD.load(),
 
         # Turn detection for natural conversation
         turn_detection="semantic"

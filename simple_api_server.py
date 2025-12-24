@@ -125,15 +125,31 @@ async def twilio_webhook(request: Request):
         
         print(f"🔊 WebSocket URL: {websocket_url}")
         
-        # Generate TwiML with <Stream> to connect audio
-        twiml_response = generate_stream_twiml(
-            websocket_url=websocket_url,
-            room_name=room_name,
-            lead_id=lead_id,
-            agent_id=agent_id
-        )
+        # For debugging - use simple TTS first to verify audio works
+        # Then switch back to Stream for full AI integration
+        USE_STREAM_TWIML = False  # Set to True to enable full AI audio bridge
         
-        print(f"✅ Returning Stream TwiML - audio will be bridged to LiveKit")
+        if USE_STREAM_TWIML:
+            # Generate TwiML with <Stream> to connect audio
+            twiml_response = generate_stream_twiml(
+                websocket_url=websocket_url,
+                room_name=room_name,
+                lead_id=lead_id,
+                agent_id=agent_id
+            )
+            print(f"✅ Returning Stream TwiML - audio will be bridged to LiveKit")
+        else:
+            # Simple TTS response for testing
+            twiml_response = f"""<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="Polly.Matthew">
+        Hey there! This is the AI calling from the benefits center. 
+        Our AI voice agent system is now working and ready to help you with insurance appointments.
+        This is a test call to verify the audio is working correctly.
+        Thank you for your time, and have a great day!
+    </Say>
+</Response>"""
+            print(f"✅ Returning simple Say TwiML for testing")
         
         return Response(content=twiml_response, media_type="text/xml")
         

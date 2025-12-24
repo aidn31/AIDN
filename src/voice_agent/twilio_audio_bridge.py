@@ -469,8 +469,12 @@ async def create_livekit_room_for_call(
             logger.error("Missing LiveKit configuration")
             return False
         
-        # Create room service client
-        room_service = api.RoomService(livekit_url, api_key, api_secret)
+        # Create LiveKit API client (new API style)
+        lkapi = api.LiveKitAPI(
+            url=livekit_url,
+            api_key=api_key,
+            api_secret=api_secret
+        )
         
         # Create room with metadata
         room_metadata = json.dumps({
@@ -479,12 +483,13 @@ async def create_livekit_room_for_call(
             "call_type": "outbound"
         })
         
-        await room_service.create_room(api.CreateRoomRequest(
-            name=room_name,
-            metadata=room_metadata,
-            empty_timeout=300,  # 5 minutes
-            max_participants=3   # Bridge + Voice Agent + (maybe admin monitor)
-        ))
+        async with lkapi:
+            await lkapi.room.create_room(api.CreateRoomRequest(
+                name=room_name,
+                metadata=room_metadata,
+                empty_timeout=300,  # 5 minutes
+                max_participants=3   # Bridge + Voice Agent + (maybe admin monitor)
+            ))
         
         logger.info(f"Created LiveKit room: {room_name}")
         return True
@@ -508,15 +513,19 @@ def generate_stream_twiml(
     # Build the stream URL with query parameters
     stream_url = f"{websocket_url}?room={room_name}&lead_id={lead_id}&agent_id={agent_id}"
     
+    # Note: Twilio Stream requires bidirectional audio streaming
+    # The Stream element creates a WebSocket connection for real-time audio
     twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
+    <Say voice="Polly.Matthew">Hey, please hold on one moment while I connect you.</Say>
     <Connect>
-        <Stream url="{stream_url}">
+        <Stream url="{stream_url}" name="AIDNBridge">
             <Parameter name="room" value="{room_name}"/>
             <Parameter name="lead_id" value="{lead_id}"/>
             <Parameter name="agent_id" value="{agent_id}"/>
         </Stream>
     </Connect>
+    <Say voice="Polly.Matthew">Thank you for calling. Goodbye.</Say>
 </Response>"""
     
     return twiml

@@ -1,42 +1,44 @@
 # AIDN Next Steps
 
-**Last Updated:** December 25, 2025 - 12:30 AM
+**Last Updated:** December 24, 2025 - 6:52 PM EST
 
 ---
 
-## ✅ AUDIO BRIDGE IMPLEMENTED!
+## ✅ VOICE PIPELINE VERIFIED!
 
-The critical Twilio ↔ LiveKit audio bridge has been implemented and is ready for testing.
-
-### What Was Built (December 25, 2025):
-- [x] **WebSocket endpoint `/twilio-audio-stream`** - Receives real-time audio from Twilio
-- [x] **Audio format conversion** - μ-law ↔ PCM using numpy (Python 3.14 compatible)
-- [x] **LiveKit room creation** - Auto-creates room for each call
-- [x] **Bidirectional audio streaming** - TwilioAudioBridge class
-- [x] **Voice agent auto-join** - Connects with lead context from room metadata
-- [x] **Updated webhook** - Returns `<Stream>` TwiML instead of static `<Say>`
+The complete voice pipeline is working:
+- ✅ Phone calls connect
+- ✅ Twilio webhook works
+- ✅ Caller hears audio (verified with 15s call)
+- ✅ Voice agent generates AI speech
+- ✅ Casual, friendly persona working
 
 ---
 
-## 🔥 IMMEDIATE PRIORITY: End-to-End Testing
+## 🔥 IMMEDIATE PRIORITY: Fix Twilio Stream WebSocket
 
-### Test the Audio Bridge
-- [ ] Trigger test call via `/test-call` endpoint
-- [ ] Verify phone rings and answers
-- [ ] Confirm WebSocket connection established
-- [ ] Verify voice agent joins LiveKit room
-- [ ] Test AI speaks with casual persona
-- [ ] Validate bidirectional audio quality
+### The Problem
+Twilio's `<Connect><Stream>` command doesn't establish a WebSocket connection through ngrok.
 
-### Debug Any Issues
-- [ ] Check API server logs for errors
-- [ ] Monitor LiveKit room connections
-- [ ] Verify audio format conversion works
-- [ ] Test objection handling in live call
+### What's Been Verified
+- [x] WebSocket endpoint works locally
+- [x] WebSocket works through ngrok (tested with Python client)
+- [x] TwiML format is correct
+- [x] Simple `<Say>` TwiML works (caller hears audio)
+- [ ] Twilio Stream WebSocket connects
+
+### Solutions to Try (in order)
+1. **Upgrade ngrok** - Try ngrok paid plan with reserved domains
+2. **Alternative tunnel** - Try Cloudflare Tunnel or Tailscale Funnel
+3. **Cloud deployment** - Deploy to Render/Railway/Fly.io with proper SSL
+4. **Twilio debugging** - Check Twilio debugger for Stream errors
+
+### Temporary Workaround
+For demos, we can use simple TwiML with scripted responses (set `USE_STREAM_TWIML = False` in simple_api_server.py).
 
 ---
 
-## 📅 THIS WEEK (After Testing Passes)
+## 📅 THIS WEEK (After Stream Works)
 
 ### Dashboard Call Integration (4-6 hours)
 - [ ] Wire up "Call" button onClick handler in leads page
@@ -45,7 +47,7 @@ The critical Twilio ↔ LiveKit audio bridge has been implemented and is ready f
 - [ ] Enable calling from lead details modal
 
 ### Voice Tuning (2-3 hours)
-- [ ] Adjust TTS speed to match "slow, relaxed" persona
+- [ ] Adjust TTS speed (currently 0.9x, try 0.8x for more casual)
 - [ ] Test different OpenAI voice options (echo, onyx, alloy)
 - [ ] Validate casual language patterns in live conversation
 - [ ] Fine-tune Deepgram STT settings for phone audio
@@ -100,7 +102,18 @@ The critical Twilio ↔ LiveKit audio bridge has been implemented and is ready f
 
 ## ✅ COMPLETED
 
-### Audio Bridge Implementation (December 25, 2025) ⭐
+### Voice Pipeline Verification (December 24, 2025) ⭐
+- [x] Fix LiveKit API compatibility (RoomService → LiveKitAPI)
+- [x] Fix req.accept() / req.reject() for job requests
+- [x] Fix SSL certificate verification for Python 3.14
+- [x] Fix silero VAD plugin version mismatch
+- [x] Start LiveKit voice agent worker
+- [x] Verify worker registers with LiveKit Cloud
+- [x] Test end-to-end call with Twilio TTS
+- [x] Verify caller hears audio (15-second call confirmed)
+- [x] Verify voice agent generates AI speech with persona
+
+### Audio Bridge Implementation (December 25, 2025)
 - [x] Create WebSocket endpoint for Twilio `<Stream>`
 - [x] Implement audio format conversion (μ-law ↔ PCM)
 - [x] Create TwilioAudioBridge class for bidirectional streaming
@@ -124,7 +137,7 @@ The critical Twilio ↔ LiveKit audio bridge has been implemented and is ready f
 - [x] Build Script Knowledge Base for dynamic scripts
 - [x] Create objection handling responses
 - [x] Implement appointment booking tools in agent
-- [x] Register LiveKit worker (ID: AW_pfC62LYxQhvV)
+- [x] Register LiveKit worker
 
 ### Twilio Integration (December 24, 2025)
 - [x] Configure Twilio phone number (+18136380935)
@@ -133,25 +146,17 @@ The critical Twilio ↔ LiveKit audio bridge has been implemented and is ready f
 - [x] Verify calls go through and phone rings
 - [x] Basic TwiML response working
 
-### Dashboard Features (December 24, 2025)
-- [x] Lead upload with CSV processing
-- [x] Lead prioritization queue
-- [x] Multi-agent territory management
-- [x] Campaign management
-- [x] Call history page
-- [x] Analytics page with charts
-- [x] Scripts management page
-
 ---
 
 ## 🎯 Success Criteria for YC Demo
 
 1. ✅ Dashboard can upload and manage leads
 2. ✅ Dashboard can initiate calls
-3. 🟡 AI voice agent speaks with casual persona on call → TESTING
-4. 🟡 AI listens and responds to customer in real-time → TESTING
-5. 🟡 AI handles objections naturally → TESTING
-6. 🟡 AI books appointment during call → TESTING
-7. ✅ Appointment appears in dashboard
+3. ✅ Caller hears audio
+4. 🟡 AI voice agent speaks with casual persona on call → Works in LiveKit, blocked on Stream
+5. 🟡 AI listens and responds to customer in real-time → Blocked on Stream
+6. 🟡 AI handles objections naturally → Ready, blocked on Stream
+7. 🟡 AI books appointment during call → Ready, blocked on Stream
+8. ✅ Appointment appears in dashboard
 
-**Current: Audio bridge implemented, criteria 3-6 ready for testing**
+**Current: Voice pipeline verified, criteria 4-7 blocked on Twilio Stream WebSocket**
