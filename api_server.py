@@ -27,6 +27,8 @@ load_dotenv()
 from src.dashboard_agent.streamlit_db import StreamlitDatabase
 from src.shared.database.connection import DatabaseManager
 from src.shared.territory_manager import TerritoryManager
+from src.voice_agent.call_manager import CallManager
+from src.shared.models.lead import Lead
 
 app = FastAPI(
     title="AIDN API",
@@ -47,6 +49,9 @@ app.add_middleware(
 db = StreamlitDatabase()
 db_manager = DatabaseManager()
 territory_manager = TerritoryManager(db_manager)
+
+# Initialize call manager for voice agent functionality
+call_manager = CallManager(db_manager)
 
 
 @app.get("/")
@@ -207,24 +212,49 @@ async def initiate_call(call_data: dict):
             raise HTTPException(status_code=400, detail="lead_id is required")
 
         # Get lead details
-        lead = db.execute_single("SELECT * FROM leads WHERE id = %s", (lead_id,))
-        if not lead:
+        lead_data = db.execute_single("SELECT * FROM leads WHERE id = %s", (lead_id,))
+        if not lead_data:
             raise HTTPException(status_code=404, detail="Lead not found")
 
-        # For now, simulate call initiation
-        # In production, this would trigger the voice agent
-        call_id = f"call_{datetime.now().timestamp()}"
+        # Convert to Lead model
+        from uuid import UUID
+        from datetime import datetime
+        lead = Lead(
+            id=UUID(lead_data['id']) if isinstance(lead_data['id'], str) else lead_data['id'],
+            first_name=lead_data['first_name'],
+            last_name=lead_data['last_name'],
+            phone=lead_data['phone'],
+            address=lead_data.get('address'),
+            city=lead_data.get('city'),
+            county=lead_data.get('county'),
+            state=lead_data.get('state'),
+            zip_code=lead_data.get('zip_code'),
+            agent_id=UUID(lead_data['agent_id']) if isinstance(lead_data['agent_id'], str) else lead_data['agent_id'],
+            lead_type=lead_data.get('lead_type', 'general'),
+            source=lead_data.get('lead_source', 'manual'),
+            call_outcome=lead_data.get('call_outcome', 'fresh'),
+            call_count=lead_data.get('call_count', 0),
+            needs_retry=lead_data.get('needs_retry', False),
+            is_active=lead_data.get('is_active', True),
+            created_at=lead_data.get('created_at', datetime.now()),
+            uploaded_at=lead_data.get('uploaded_at', datetime.now())
+        )
 
-        # Log the call attempt
-        db.execute_query("""
-            INSERT INTO call_logs (id, lead_id, agent_id, started_at, outcome, notes)
-            VALUES (%s, %s, %s, %s, %s, %s)
-        """, (
-            call_id, lead_id, lead['agent_id'], datetime.now(),
-            'initiated', f"Call initiated to {lead['phone']}"
-        ))
+        # Initiate the actual call using CallManager
+        try:
+            call_sid = await call_manager.initiate_call(lead, lead.agent_id)
 
-        return {"success": True, "call_id": call_id, "message": f"Calling {lead['first_name']} {lead['last_name']} at {lead['phone']}"}
+            if call_sid:
+                return {
+                    "success": True,
+                    "call_id": call_sid,
+                    "message": f"Calling {lead.first_name} {lead.last_name} at {lead.phone}"
+                }
+            else:
+                raise HTTPException(status_code=500, detail="Failed to initiate call - no call_sid returned")
+        except Exception as call_error:
+            print(f"Call initiation error: {call_error}")
+            raise HTTPException(status_code=500, detail=f"Call initiation failed: {str(call_error)}")
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
