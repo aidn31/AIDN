@@ -21,8 +21,8 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Add src to path
-sys.path.insert(0, '/Users/thomasroldan/Documents/GitHub/AIDN')
+# Add src to path (works both locally and on Railway)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from src.voice_agent.twilio_audio_bridge import (
     TwilioAudioBridge,
