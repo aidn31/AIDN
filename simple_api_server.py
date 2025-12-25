@@ -127,7 +127,7 @@ async def twilio_webhook(request: Request):
         
         # For debugging - use simple TTS first to verify audio works
         # Then switch back to Stream for full AI integration
-        USE_STREAM_TWIML = False  # Set to True to enable full AI audio bridge
+        USE_STREAM_TWIML = True  # Enabled for AI voice agent
         
         if USE_STREAM_TWIML:
             # Generate TwiML with <Stream> to connect audio
@@ -258,7 +258,25 @@ async def _handle_incoming_audio(websocket: WebSocket, bridge: TwilioAudioBridge
 async def _handle_outgoing_audio(websocket: WebSocket, bridge: TwilioAudioBridge):
     """Handle outgoing audio to Twilio (from voice agent)."""
     try:
-        while bridge.is_connected or not bridge.outgoing_audio_queue.empty():
+        # Keep running as long as we haven't explicitly disconnected
+        # The bridge connects to LiveKit asynchronously after receiving "start" event
+        # So we need to wait patiently for it to become ready
+        max_wait_for_connect = 30  # seconds
+        waited = 0
+        
+        # Wait for bridge to connect (receives "start" event from Twilio first)
+        while not bridge.is_connected and waited < max_wait_for_connect:
+            await asyncio.sleep(0.1)
+            waited += 0.1
+        
+        if not bridge.is_connected:
+            print("⚠️ Bridge never connected to LiveKit, exiting outgoing handler")
+            return
+        
+        print("✅ Bridge connected, starting outgoing audio loop")
+        
+        # Now stream audio as long as connected
+        while bridge.is_connected:
             # Get audio to send to Twilio
             message = await bridge.get_outgoing_audio()
             
@@ -267,6 +285,12 @@ async def _handle_outgoing_audio(websocket: WebSocket, bridge: TwilioAudioBridge
             else:
                 # Small delay if no audio ready
                 await asyncio.sleep(0.01)
+        
+        # Drain any remaining audio after disconnect
+        while not bridge.outgoing_audio_queue.empty():
+            message = await bridge.get_outgoing_audio()
+            if message:
+                await websocket.send_text(message)
                 
     except WebSocketDisconnect:
         raise
