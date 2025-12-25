@@ -1,13 +1,15 @@
 # AIDN Project Status
 
-**Last Updated:** December 24, 2025 - 8:30 PM EST
-**Current Phase:** RAILWAY DEPLOYMENT IN PROGRESS
+**Last Updated:** December 24, 2025 - 9:00 PM EST
+**Current Phase:** RAILWAY DEPLOYED - READY FOR TESTING
 **Updated By:** Claude
 
 ---
 
 ## 🎯 Current Goal
-Complete Railway deployment configuration (expose service, add webhook URL), then test AI voice on live calls.
+Update Twilio webhook to Railway URL, then test AI voice on live calls.
+
+**Railway URL:** `https://aidn-production.up.railway.app`
 
 ---
 
@@ -38,9 +40,10 @@ Complete Railway deployment configuration (expose service, add webhook URL), the
 | **LiveKit Worker** | 🟢 REGISTERED | Worker registered (AW_vuApLZzfseCn) |
 | **Twilio Webhook** | 🟢 COMPLETE | Returns TwiML correctly |
 | **Audio Bridge Code** | 🟢 COMPLETE | TwilioAudioBridge class implemented |
-| **Railway Deployment** | 🟢 DEPLOYED | App is online, needs service exposure |
-| **Railway Service Exposure** | 🟡 IN PROGRESS | Need to generate public domain |
-| **AI Voice on Live Calls** | 🟡 PENDING | Waiting for Railway URL + Twilio webhook update |
+| **Railway Deployment** | 🟢 DEPLOYED | App online at aidn-production.up.railway.app |
+| **Railway Service Exposure** | 🟢 COMPLETE | Public domain generated, port 8000 |
+| **LIVEKIT_WEBHOOK_BASE_URL** | 🟢 CONFIGURED | Set to Railway URL |
+| **AI Voice on Live Calls** | 🟡 PENDING | Need to update Twilio webhook |
 | **Dashboard Call Button** | 🟡 PARTIAL | Button exists, needs onClick handler |
 
 ---
@@ -96,10 +99,10 @@ Complete Railway deployment configuration (expose service, add webhook URL), the
 
 ## 🚧 Immediate Next Steps
 
-### Priority 1: Complete Railway Setup (5 min)
-- [ ] Expose Railway service (generate public domain)
-- [ ] Add LIVEKIT_WEBHOOK_BASE_URL variable with Railway URL
-- [ ] Update Twilio webhook to point to Railway URL
+### Priority 1: Update Twilio Webhook (2 min)
+- [x] Expose Railway service (generate public domain) ✅
+- [x] Add LIVEKIT_WEBHOOK_BASE_URL variable with Railway URL ✅
+- [ ] Update Twilio webhook to: `https://aidn-production.up.railway.app/twilio-webhook`
 
 ### Priority 2: Test AI Voice (10 min)
 - [ ] Make test call
@@ -128,7 +131,9 @@ Complete Railway deployment configuration (expose service, add webhook URL), the
   - Fixed hardcoded path in simple_api_server.py (now uses `os.path.dirname`)
 - Set custom start command: `python simple_api_server.py`
 - Successfully deployed - app showing "Online" status
-- **Next:** Expose service, add webhook URL, test AI voice
+- Generated public domain: `aidn-production.up.railway.app` (port 8000)
+- Added `LIVEKIT_WEBHOOK_BASE_URL` environment variable
+- **Next:** Update Twilio webhook, test AI voice
 
 ### December 24, 2025 Evening - Debugging & Deployment Decision ⭐
 - Cleaned up old terminals and restarted services cleanly

@@ -1,6 +1,6 @@
 # AIDN Next Steps
 
-**Last Updated:** December 24, 2025 - 8:30 PM EST
+**Last Updated:** December 24, 2025 - 9:00 PM EST
 
 ---
 
@@ -14,16 +14,17 @@ Real human agents are ready to use AIDN. New priorities:
 
 ---
 
-## 🔥 IMMEDIATE: Complete Railway Setup (5 min)
+## 🔥 IMMEDIATE: Update Twilio Webhook (2 min)
 
-### Railway Deployment Status: ✅ DEPLOYED
-App is online at Railway! Just need to complete configuration:
+### Railway Deployment Status: ✅ FULLY CONFIGURED
+- **Public URL:** `https://aidn-production.up.railway.app`
+- **Webhook endpoint:** `https://aidn-production.up.railway.app/twilio-webhook`
 
 ### Remaining Steps
-1. [ ] Expose Railway service (Settings → Networking → Generate Domain)
-2. [ ] Copy the Railway URL (e.g., `https://aidn-xxx.up.railway.app`)
-3. [ ] Add `LIVEKIT_WEBHOOK_BASE_URL` variable in Railway with the URL
-4. [ ] Update Twilio webhook to point to Railway URL
+1. [x] Expose Railway service (Settings → Networking → Generate Domain) ✅
+2. [x] Copy the Railway URL ✅
+3. [x] Add `LIVEKIT_WEBHOOK_BASE_URL` variable in Railway ✅
+4. [ ] Update Twilio webhook to: `https://aidn-production.up.railway.app/twilio-webhook`
 5. [ ] Test call with Stream → AI voice should work!
 
 ### After URL Configuration
@@ -112,6 +113,8 @@ App is online at Railway! Just need to complete configuration:
 - [x] Fix simple_api_server.py (use relative path)
 - [x] Set start command
 - [x] Deploy successfully (app online!)
+- [x] Generate public domain: `aidn-production.up.railway.app`
+- [x] Add LIVEKIT_WEBHOOK_BASE_URL variable
 
 ### December 24, 2025 Evening - Debugging Session
 - [x] Clean restart of all services
@@ -150,10 +153,10 @@ App is online at Railway! Just need to complete configuration:
 1. ✅ Dashboard can upload and manage leads
 2. ✅ Dashboard can initiate calls
 3. ✅ Caller hears audio
-4. 🟡 AI voice agent speaks with casual persona → Railway deployed, needs URL config
-5. 🟡 AI listens and responds in real-time → Railway deployed, needs URL config
-6. 🟡 AI handles objections naturally → Railway deployed, needs URL config
-7. 🟡 AI books appointment during call → Railway deployed, needs URL config
+4. 🟡 AI voice agent speaks with casual persona → Railway configured, needs Twilio webhook
+5. 🟡 AI listens and responds in real-time → Railway configured, needs Twilio webhook
+6. 🟡 AI handles objections naturally → Railway configured, needs Twilio webhook
+7. 🟡 AI books appointment during call → Railway configured, needs Twilio webhook
 8. ✅ Appointment appears in dashboard
 
-**Next: Complete Railway URL configuration to test items 4-7**
+**Next: Update Twilio webhook to Railway URL to test items 4-7**
