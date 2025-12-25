@@ -1,15 +1,17 @@
 # AIDN Project Status
 
-**Last Updated:** December 24, 2025 - 9:00 PM EST
-**Current Phase:** RAILWAY DEPLOYED - READY FOR TESTING
+**Last Updated:** December 25, 2025 - 11:10 AM EST
+**Current Phase:** RAILWAY DEPLOYED - DEBUGGING AUDIO BRIDGE
 **Updated By:** Claude
 
 ---
 
 ## 🎯 Current Goal
-Update Twilio webhook to Railway URL, then test AI voice on live calls.
+Debug audio bridge - calls connect through Railway but getting "application error" on the audio stream.
 
 **Railway URL:** `https://aidn-production.up.railway.app`
+**Twilio Webhook:** Updated to Railway URL ✅
+**Test Call Result:** Call connects, but audio stream returns application error
 
 ---
 
@@ -43,7 +45,9 @@ Update Twilio webhook to Railway URL, then test AI voice on live calls.
 | **Railway Deployment** | 🟢 DEPLOYED | App online at aidn-production.up.railway.app |
 | **Railway Service Exposure** | 🟢 COMPLETE | Public domain generated, port 8000 |
 | **LIVEKIT_WEBHOOK_BASE_URL** | 🟢 CONFIGURED | Set to Railway URL |
-| **AI Voice on Live Calls** | 🟡 PENDING | Need to update Twilio webhook |
+| **Twilio Webhook** | 🟢 UPDATED | Points to Railway URL |
+| **Test Call Connection** | 🟢 WORKING | Calls go through Railway |
+| **AI Voice on Live Calls** | 🔴 ERROR | Audio stream returns "application error" |
 | **Dashboard Call Button** | 🟡 PARTIAL | Button exists, needs onClick handler |
 
 ---
@@ -99,10 +103,14 @@ Update Twilio webhook to Railway URL, then test AI voice on live calls.
 
 ## 🚧 Immediate Next Steps
 
-### Priority 1: Update Twilio Webhook (2 min)
+### Priority 1: Debug Audio Bridge
 - [x] Expose Railway service (generate public domain) ✅
 - [x] Add LIVEKIT_WEBHOOK_BASE_URL variable with Railway URL ✅
-- [ ] Update Twilio webhook to: `https://aidn-production.up.railway.app/twilio-webhook`
+- [x] Update Twilio webhook to Railway URL ✅
+- [x] Test call - calls connect through Railway ✅
+- [ ] Debug "application error" in audio stream
+- [ ] Check Railway logs for error details
+- [ ] Fix audio bridge WebSocket issue
 
 ### Priority 2: Test AI Voice (10 min)
 - [ ] Make test call
@@ -123,6 +131,15 @@ Update Twilio webhook to Railway URL, then test AI voice on live calls.
 
 ## 📝 Session History
 
+### December 25, 2025 Morning - Railway Testing ⭐
+- Added missing LIVEKIT_API_KEY variable
+- Fixed DATABASE_URL variable (re-added after build error)
+- All 10 environment variables configured correctly
+- Updated Twilio webhook to: `https://aidn-production.up.railway.app/twilio-webhook`
+- Test call successful - call connected through Railway!
+- **Issue Found:** Audio stream returns "application error"
+- **Next:** Debug audio bridge WebSocket, check Railway logs
+
 ### December 24, 2025 Night - Railway Deployment ⭐
 - Created Railway account and connected GitHub repository
 - Configured all environment variables in Railway
@@ -133,7 +150,6 @@ Update Twilio webhook to Railway URL, then test AI voice on live calls.
 - Successfully deployed - app showing "Online" status
 - Generated public domain: `aidn-production.up.railway.app` (port 8000)
 - Added `LIVEKIT_WEBHOOK_BASE_URL` environment variable
-- **Next:** Update Twilio webhook, test AI voice
 
 ### December 24, 2025 Evening - Debugging & Deployment Decision ⭐
 - Cleaned up old terminals and restarted services cleanly

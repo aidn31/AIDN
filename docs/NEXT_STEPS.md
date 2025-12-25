@@ -1,6 +1,6 @@
 # AIDN Next Steps
 
-**Last Updated:** December 24, 2025 - 9:00 PM EST
+**Last Updated:** December 25, 2025 - 11:10 AM EST
 
 ---
 
@@ -14,18 +14,20 @@ Real human agents are ready to use AIDN. New priorities:
 
 ---
 
-## 🔥 IMMEDIATE: Update Twilio Webhook (2 min)
+## 🔥 IMMEDIATE: Debug Audio Bridge
 
-### Railway Deployment Status: ✅ FULLY CONFIGURED
+### Railway Deployment Status: ✅ DEPLOYED & CONNECTED
 - **Public URL:** `https://aidn-production.up.railway.app`
-- **Webhook endpoint:** `https://aidn-production.up.railway.app/twilio-webhook`
+- **Twilio Webhook:** Updated ✅
+- **Test Call:** Connects through Railway ✅
+- **Issue:** Audio stream returns "application error"
 
-### Remaining Steps
-1. [x] Expose Railway service (Settings → Networking → Generate Domain) ✅
-2. [x] Copy the Railway URL ✅
-3. [x] Add `LIVEKIT_WEBHOOK_BASE_URL` variable in Railway ✅
-4. [ ] Update Twilio webhook to: `https://aidn-production.up.railway.app/twilio-webhook`
-5. [ ] Test call with Stream → AI voice should work!
+### Next Session Steps
+1. [ ] Check Railway deploy logs for error details
+2. [ ] Debug `/twilio-audio-stream` WebSocket endpoint
+3. [ ] Verify LiveKit room creation is working
+4. [ ] Test audio bridge connection
+5. [ ] Fix any issues and re-test call
 
 ### After URL Configuration
 - [ ] Wire up Call button onClick (30 min fix)
@@ -105,6 +107,14 @@ Real human agents are ready to use AIDN. New priorities:
 
 ## ✅ COMPLETED
 
+### December 25, 2025 Morning - Railway Testing ⭐
+- [x] Add missing LIVEKIT_API_KEY variable
+- [x] Fix DATABASE_URL variable
+- [x] All 10 environment variables configured
+- [x] Update Twilio webhook to Railway URL
+- [x] Test call - connects through Railway!
+- [ ] Debug audio stream "application error"
+
 ### December 24, 2025 Night - Railway Deployment ⭐
 - [x] Create Railway account
 - [x] Connect GitHub repository
@@ -153,10 +163,10 @@ Real human agents are ready to use AIDN. New priorities:
 1. ✅ Dashboard can upload and manage leads
 2. ✅ Dashboard can initiate calls
 3. ✅ Caller hears audio
-4. 🟡 AI voice agent speaks with casual persona → Railway configured, needs Twilio webhook
-5. 🟡 AI listens and responds in real-time → Railway configured, needs Twilio webhook
-6. 🟡 AI handles objections naturally → Railway configured, needs Twilio webhook
-7. 🟡 AI books appointment during call → Railway configured, needs Twilio webhook
+4. 🔴 AI voice agent speaks with casual persona → Audio bridge error, needs debugging
+5. 🔴 AI listens and responds in real-time → Audio bridge error, needs debugging
+6. 🔴 AI handles objections naturally → Audio bridge error, needs debugging
+7. 🔴 AI books appointment during call → Audio bridge error, needs debugging
 8. ✅ Appointment appears in dashboard
 
-**Next: Update Twilio webhook to Railway URL to test items 4-7**
+**Next: Debug audio bridge error to enable items 4-7**

@@ -19,6 +19,8 @@ git commit -m "Describe what you did"
 git push
 ```
 
+Review the changes made this session and commit them to git with an appropriate commit message, then push to origin.
+
 **Examples of good commit messages:**
 - `"Voice agent now connects to Twilio"`
 - `"Fixed appointment booking bug"`
