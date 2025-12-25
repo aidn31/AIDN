@@ -1,13 +1,13 @@
 # AIDN Project Status
 
-**Last Updated:** December 24, 2025 - 7:30 PM EST
-**Current Phase:** READY FOR PRODUCTION DEPLOYMENT
+**Last Updated:** December 24, 2025 - 8:30 PM EST
+**Current Phase:** RAILWAY DEPLOYMENT IN PROGRESS
 **Updated By:** Claude
 
 ---
 
 ## 🎯 Current Goal
-Deploy to production (Railway) to enable AI voice on live calls, then onboard real agents.
+Complete Railway deployment configuration (expose service, add webhook URL), then test AI voice on live calls.
 
 ---
 
@@ -38,8 +38,9 @@ Deploy to production (Railway) to enable AI voice on live calls, then onboard re
 | **LiveKit Worker** | 🟢 REGISTERED | Worker registered (AW_vuApLZzfseCn) |
 | **Twilio Webhook** | 🟢 COMPLETE | Returns TwiML correctly |
 | **Audio Bridge Code** | 🟢 COMPLETE | TwilioAudioBridge class implemented |
-| **Twilio Stream WebSocket** | 🔴 BLOCKED | ngrok free tier incompatible with Twilio Stream |
-| **AI Voice on Live Calls** | 🔴 BLOCKED | Requires production deployment |
+| **Railway Deployment** | 🟢 DEPLOYED | App is online, needs service exposure |
+| **Railway Service Exposure** | 🟡 IN PROGRESS | Need to generate public domain |
+| **AI Voice on Live Calls** | 🟡 PENDING | Waiting for Railway URL + Twilio webhook update |
 | **Dashboard Call Button** | 🟡 PARTIAL | Button exists, needs onClick handler |
 
 ---
@@ -80,37 +81,37 @@ Deploy to production (Railway) to enable AI voice on live calls, then onboard re
 - ✅ TwilioAudioBridge class for bidirectional streaming
 - ✅ Improved outgoing audio handler (waits for bridge connection)
 
----
-
-## 🔴 Current Blocker: ngrok Free Tier
-
-**Root Cause Identified:** Twilio's `<Stream>` WebSocket doesn't work through ngrok free tier.
-
-**Evidence:**
-- ✅ Our WebSocket endpoint works (tested with Python websockets library)
-- ✅ Simple `<Say>` TwiML works (caller hears audio)
-- ✅ TwiML format is correct
-- ❌ Twilio never attempts WebSocket connection (verified in ngrok logs)
-- ❌ Caller hears "application error" when Stream TwiML is returned
-
-**Solution:** Deploy to Railway/Render (free tier available)
+### **Railway Deployment (In Progress)**
+- ✅ Railway account created
+- ✅ GitHub repository connected
+- ✅ Environment variables configured
+- ✅ Start command set (`python simple_api_server.py`)
+- ✅ Fixed local path references in requirements.txt and simple_api_server.py
+- ✅ App deployed and showing "Online"
+- 🟡 Need to expose service (generate public domain)
+- 🟡 Need to add LIVEKIT_WEBHOOK_BASE_URL with Railway URL
+- 🟡 Need to update Twilio webhook to Railway URL
 
 ---
 
 ## 🚧 Immediate Next Steps
 
-### Priority 1: Deploy to Railway (15-20 min)
-- [ ] Create Railway account
-- [ ] Deploy API server
-- [ ] Update Twilio webhook URL
-- [ ] Test Stream WebSocket works
+### Priority 1: Complete Railway Setup (5 min)
+- [ ] Expose Railway service (generate public domain)
+- [ ] Add LIVEKIT_WEBHOOK_BASE_URL variable with Railway URL
+- [ ] Update Twilio webhook to point to Railway URL
 
-### Priority 2: Wire Up Call Button (30 min)
+### Priority 2: Test AI Voice (10 min)
+- [ ] Make test call
+- [ ] Verify AI voice agent speaks
+- [ ] Confirm bidirectional audio works
+
+### Priority 3: Wire Up Call Button (30 min)
 - [ ] Add onClick handler to Call button in leads page
 - [ ] Connect to `/calls/initiate` endpoint
 - [ ] Show call status feedback
 
-### Priority 3: Test with Real Agents
+### Priority 4: Test with Real Agents
 - [ ] Onboard first agent
 - [ ] Collect feedback
 - [ ] Iterate on issues
@@ -118,6 +119,16 @@ Deploy to production (Railway) to enable AI voice on live calls, then onboard re
 ---
 
 ## 📝 Session History
+
+### December 24, 2025 Night - Railway Deployment ⭐
+- Created Railway account and connected GitHub repository
+- Configured all environment variables in Railway
+- Fixed build errors:
+  - Removed local path reference from requirements.txt (`-e file:///Users/...`)
+  - Fixed hardcoded path in simple_api_server.py (now uses `os.path.dirname`)
+- Set custom start command: `python simple_api_server.py`
+- Successfully deployed - app showing "Online" status
+- **Next:** Expose service, add webhook URL, test AI voice
 
 ### December 24, 2025 Evening - Debugging & Deployment Decision ⭐
 - Cleaned up old terminals and restarted services cleanly
@@ -162,9 +173,9 @@ AIDN is production ready when:
 1. ✅ Dashboard can initiate calls → WORKING
 2. ✅ Phone rings and call connects → WORKING
 3. ✅ Caller hears audio → VERIFIED
-4. 🔴 AI voice agent speaks with casual persona → Requires deployment
-5. 🔴 AI listens and responds in real-time → Requires deployment
-6. 🔴 AI books appointments during call → Requires deployment
+4. 🟡 AI voice agent speaks with casual persona → Railway deployed, needs URL config
+5. 🟡 AI listens and responds in real-time → Railway deployed, needs URL config
+6. 🟡 AI books appointments during call → Railway deployed, needs URL config
 7. ✅ Appointment saved to database → WORKING
 
-**Current Status: Deploy to Railway to unblock AI voice on calls**
+**Current Status: Complete Railway URL configuration to test AI voice**

@@ -1,6 +1,6 @@
 # AIDN Next Steps
 
-**Last Updated:** December 24, 2025 - 7:30 PM EST
+**Last Updated:** December 24, 2025 - 8:30 PM EST
 
 ---
 
@@ -14,24 +14,19 @@ Real human agents are ready to use AIDN. New priorities:
 
 ---
 
-## 🔥 IMMEDIATE: Deploy to Railway (Today)
+## 🔥 IMMEDIATE: Complete Railway Setup (5 min)
 
-### Why Railway?
-- Free tier available
-- Proper SSL (fixes Twilio Stream issue)
-- Easy deployment from GitHub
-- ~$5-10/month when scaling
+### Railway Deployment Status: ✅ DEPLOYED
+App is online at Railway! Just need to complete configuration:
 
-### Deployment Steps
-1. [ ] Create Railway account (railway.app)
-2. [ ] Connect GitHub repository
-3. [ ] Deploy API server (simple_api_server.py)
-4. [ ] Set environment variables (copy from .env)
-5. [ ] Get Railway public URL
-6. [ ] Update Twilio webhook to Railway URL
-7. [ ] Test call with Stream → AI voice should work!
+### Remaining Steps
+1. [ ] Expose Railway service (Settings → Networking → Generate Domain)
+2. [ ] Copy the Railway URL (e.g., `https://aidn-xxx.up.railway.app`)
+3. [ ] Add `LIVEKIT_WEBHOOK_BASE_URL` variable in Railway with the URL
+4. [ ] Update Twilio webhook to point to Railway URL
+5. [ ] Test call with Stream → AI voice should work!
 
-### After Deployment
+### After URL Configuration
 - [ ] Wire up Call button onClick (30 min fix)
 - [ ] Test full call flow end-to-end
 - [ ] Onboard first real agent
@@ -41,7 +36,8 @@ Real human agents are ready to use AIDN. New priorities:
 ## 📅 THIS WEEK
 
 ### Day 1-2: Production Deployment
-- [ ] Deploy to Railway
+- [x] Deploy to Railway
+- [ ] Complete Railway URL configuration
 - [ ] Verify AI voice works on calls
 - [ ] Wire up Call button in dashboard
 - [ ] Test full flow: Dashboard → Call → AI conversation → Appointment
@@ -108,6 +104,15 @@ Real human agents are ready to use AIDN. New priorities:
 
 ## ✅ COMPLETED
 
+### December 24, 2025 Night - Railway Deployment ⭐
+- [x] Create Railway account
+- [x] Connect GitHub repository
+- [x] Configure environment variables
+- [x] Fix requirements.txt (remove local path)
+- [x] Fix simple_api_server.py (use relative path)
+- [x] Set start command
+- [x] Deploy successfully (app online!)
+
 ### December 24, 2025 Evening - Debugging Session
 - [x] Clean restart of all services
 - [x] Fix outgoing audio handler (wait for bridge connection)
@@ -145,10 +150,10 @@ Real human agents are ready to use AIDN. New priorities:
 1. ✅ Dashboard can upload and manage leads
 2. ✅ Dashboard can initiate calls
 3. ✅ Caller hears audio
-4. ⏳ AI voice agent speaks with casual persona → Needs deployment
-5. ⏳ AI listens and responds in real-time → Needs deployment
-6. ⏳ AI handles objections naturally → Needs deployment
-7. ⏳ AI books appointment during call → Needs deployment
+4. 🟡 AI voice agent speaks with casual persona → Railway deployed, needs URL config
+5. 🟡 AI listens and responds in real-time → Railway deployed, needs URL config
+6. 🟡 AI handles objections naturally → Railway deployed, needs URL config
+7. 🟡 AI books appointment during call → Railway deployed, needs URL config
 8. ✅ Appointment appears in dashboard
 
-**Next: Deploy to Railway to check off items 4-7**
+**Next: Complete Railway URL configuration to test items 4-7**
