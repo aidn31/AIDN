@@ -54,7 +54,7 @@ async def root():
     """Health check endpoint."""
     return {
         "message": "AIDN API Server is running",
-        "version": "1.0.1",
+        "version": "1.0.2",
         "endpoints": {
             "webhook": "/twilio-webhook",
             "audio_stream": "/twilio-audio-stream",
@@ -63,7 +63,15 @@ async def root():
             "simple_webhook": "/simple-webhook",
             "stream_test": "/stream-test-webhook",
             "minimal_stream": "/minimal-stream-webhook",
-            "echo_stream": "/echo-stream-webhook (uses Twilio echo server)"
+            "echo_stream": "/echo-stream-webhook",
+            "stream_with_params": "/stream-with-params-webhook",
+            "stream_both_tracks": "/stream-both-tracks-webhook"
+        },
+        "track_tests": {
+            "track_inbound": "/track-inbound-webhook",
+            "track_outbound": "/track-outbound-webhook",
+            "track_default": "/track-default-webhook",
+            "track_comparison": "/track-comparison-webhook"
         }
     }
 
@@ -214,6 +222,136 @@ async def stream_both_tracks_webhook(request: Request):
 </Response>"""
     
     print(f"📄 TwiML: {twiml}")
+    return Response(content=twiml, media_type="text/xml")
+
+
+# === TRACK CONFIGURATION ISOLATION TESTS ===
+# These endpoints test each track configuration systematically
+
+@app.post("/track-inbound-webhook")
+async def track_inbound_webhook(request: Request):
+    """Test Stream with track=inbound (default) - should receive caller audio only."""
+    print("📞 Track INBOUND webhook called!")
+
+    webhook_base_url = os.getenv("LIVEKIT_WEBHOOK_BASE_URL", "https://aidn-production.up.railway.app")
+    ws_url = webhook_base_url.replace("https://", "wss://").replace("http://", "ws://")
+    stream_url = f"{ws_url}/twilio-audio-stream"
+
+    print(f"🔗 Stream URL (inbound track): {stream_url}")
+
+    twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="Polly.Matthew">Testing inbound track - we should receive your voice only.</Say>
+    <Start>
+        <Stream url="{stream_url}" track="inbound"/>
+    </Start>
+    <Pause length="30"/>
+    <Say voice="Polly.Matthew">Inbound track test complete.</Say>
+</Response>"""
+
+    print(f"📄 Inbound Track TwiML: {twiml}")
+    return Response(content=twiml, media_type="text/xml")
+
+
+@app.post("/track-outbound-webhook")
+async def track_outbound_webhook(request: Request):
+    """Test Stream with track=outbound - should receive Twilio generated audio only."""
+    print("📞 Track OUTBOUND webhook called!")
+
+    webhook_base_url = os.getenv("LIVEKIT_WEBHOOK_BASE_URL", "https://aidn-production.up.railway.app")
+    ws_url = webhook_base_url.replace("https://", "wss://").replace("http://", "ws://")
+    stream_url = f"{ws_url}/twilio-audio-stream"
+
+    print(f"🔗 Stream URL (outbound track): {stream_url}")
+
+    twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="Polly.Matthew">Testing outbound track - we should receive Twilio audio only.</Say>
+    <Start>
+        <Stream url="{stream_url}" track="outbound"/>
+    </Start>
+    <Say voice="Polly.Matthew">You should hear this message through the stream.</Say>
+    <Pause length="20"/>
+    <Say voice="Polly.Matthew">Outbound track test complete.</Say>
+</Response>"""
+
+    print(f"📄 Outbound Track TwiML: {twiml}")
+    return Response(content=twiml, media_type="text/xml")
+
+
+@app.post("/track-default-webhook")
+async def track_default_webhook(request: Request):
+    """Test Stream with no track attribute (defaults to inbound)."""
+    print("📞 Track DEFAULT (no attribute) webhook called!")
+
+    webhook_base_url = os.getenv("LIVEKIT_WEBHOOK_BASE_URL", "https://aidn-production.up.railway.app")
+    ws_url = webhook_base_url.replace("https://", "wss://").replace("http://", "ws://")
+    stream_url = f"{ws_url}/twilio-audio-stream"
+
+    print(f"🔗 Stream URL (default track): {stream_url}")
+
+    twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="Polly.Matthew">Testing default track - no track attribute specified.</Say>
+    <Start>
+        <Stream url="{stream_url}"/>
+    </Start>
+    <Pause length="30"/>
+    <Say voice="Polly.Matthew">Default track test complete.</Say>
+</Response>"""
+
+    print(f"📄 Default Track TwiML: {twiml}")
+    return Response(content=twiml, media_type="text/xml")
+
+
+@app.post("/track-comparison-webhook")
+async def track_comparison_webhook(request: Request):
+    """Test track=both_tracks with LiveKit bridge to compare with working configuration."""
+    print("📞 Track COMPARISON (both_tracks + LiveKit) webhook called!")
+
+    # Get query parameters
+    room_name = request.query_params.get("room", f"aidn-test-{datetime.now().strftime('%H%M%S')}")
+    lead_id = request.query_params.get("lead_id", str(uuid4()))
+    agent_id = request.query_params.get("agent_id", str(uuid4()))
+
+    print(f"🏠 Room: {room_name}")
+    print(f"👤 Lead ID: {lead_id}")
+    print(f"🤖 Agent ID: {agent_id}")
+
+    # Create LiveKit room for this test
+    room_created = await create_livekit_room_for_call(
+        room_name=room_name,
+        lead_id=lead_id,
+        agent_id=agent_id
+    )
+
+    if not room_created:
+        print("❌ Failed to create LiveKit room for comparison test")
+        twiml = """<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="Polly.Joanna">Room creation failed for comparison test.</Say>
+    <Hangup/>
+</Response>"""
+        return Response(content=twiml, media_type="text/xml")
+
+    # Generate WebSocket URL with room info
+    webhook_base_url = os.getenv("LIVEKIT_WEBHOOK_BASE_URL", "https://aidn-production.up.railway.app")
+    ws_url = webhook_base_url.replace("https://", "wss://").replace("http://", "ws://")
+    stream_url = f"{ws_url}/twilio-audio-stream?room={room_name}&lead_id={lead_id}&agent_id={agent_id}"
+
+    print(f"🔗 Stream URL (comparison test): {stream_url}")
+
+    twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="Polly.Matthew">Testing both tracks with LiveKit bridge enabled.</Say>
+    <Start>
+        <Stream url="{stream_url}" track="both_tracks"/>
+    </Start>
+    <Pause length="60"/>
+    <Say voice="Polly.Matthew">Comparison test complete.</Say>
+</Response>"""
+
+    print(f"📄 Comparison TwiML: {twiml}")
     return Response(content=twiml, media_type="text/xml")
 
 
@@ -521,7 +659,12 @@ async def test_call(request: Request):
             "minimal-stream-webhook": "/minimal-stream-webhook",
             "stream-test-webhook": "/stream-test-webhook",
             "stream-with-params-webhook": "/stream-with-params-webhook",
-            "stream-both-tracks-webhook": "/stream-both-tracks-webhook"
+            "stream-both-tracks-webhook": "/stream-both-tracks-webhook",
+            # Track configuration tests
+            "track-inbound-webhook": "/track-inbound-webhook",
+            "track-outbound-webhook": "/track-outbound-webhook",
+            "track-default-webhook": "/track-default-webhook",
+            "track-comparison-webhook": "/track-comparison-webhook"
         }
         webhook_path = webhook_endpoints.get(webhook_type, "/twilio-webhook")
         

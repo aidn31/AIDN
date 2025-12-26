@@ -1,6 +1,6 @@
 # AIDN Next Steps
 
-**Last Updated:** December 26, 2025 - 9:15 PM EST
+**Last Updated:** December 26, 2025 - 11:30 PM EST
 **Updated By:** Claude (AI Assistant)
 
 ---
@@ -17,20 +17,42 @@ Real human agents are ready to use AIDN. New priorities:
 
 ## 🔥 IMMEDIATE: Fix Twilio Stream TwiML
 
-### Current Status (Dec 26, 2025 - 9:15 PM EST)
+### 🎯 BREAKTHROUGH UPDATE (Dec 26, 2025 - 11:30 PM EST)
 - **Railway API:** ✅ Working (`https://aidn-production.up.railway.app`)
 - **Simple TwiML:** ✅ Works (user hears `<Say>` message)
 - **WebSocket Endpoint:** ✅ Works (Python client connects)
-- **Stream TwiML:** ❌ Fails ("application error")
+- **Stream TwiML:** 🔍 PARTIALLY WORKING with track="both_tracks"
 
-### What We Confirmed Tonight
-1. ✅ `/simple-webhook` works - User heard "Hello! This is a simple test..."
-2. ✅ WebSocket works - Python client connected to `/twilio-audio-stream`
-3. ✅ Railway supports WebSocket - `/ws-test` endpoint works
-4. ❌ `<Start><Stream>` TwiML causes "application error"
-5. ❌ Twilio never attempts WebSocket connection (no logs)
+### What We Discovered Tonight
+1. ✅ **BREAKTHROUGH:** Heard "Testing stream with both tracks attribute"
+2. ✅ **Stream Connects:** track="both_tracks" allows Twilio to connect and play audio
+3. ✅ **WebSocket Working:** Confirmed Twilio IS connecting to our WebSocket
+4. 🔍 **Root Cause:** Track configuration affects stream behavior, not connectivity issue
 
-### Debugging Next Steps
+### 📋 Updated Priority Plan (Based on Track Discovery)
+
+#### PHASE 1: Track Configuration Testing (Next 1-2 hours)
+1. [ ] **Test all track parameter combinations:**
+   - `track="inbound"` - Test if we can receive audio from caller
+   - `track="outbound"` - Test if we can send audio to caller
+   - `track="both_tracks"` - Already working ✅
+   - No track parameter - Already failing ❌
+
+2. [ ] **Identify optimal track configuration for voice agent:**
+   - What track setting allows bidirectional audio?
+   - What configuration works with LiveKit room joining?
+
+#### PHASE 2: LiveKit Integration Simplification (Next 2-3 hours)
+1. [ ] **Remove LiveKit room creation from initial stream connection**
+2. [ ] **Test stream connection → manual room join sequence**
+3. [ ] **Check audio format compatibility between Twilio and LiveKit**
+
+#### PHASE 3: Voice Agent Integration (Next 3-4 hours)
+1. [ ] **Get basic conversation working with optimal track config**
+2. [ ] **Test appointment booking flow**
+3. [ ] **Deploy voice agent worker to Railway as second service**
+
+### Previous Debugging Steps (Lower Priority Now)
 1. [ ] **Check Twilio Call Logs**
    - Go to Twilio Console → Monitor → Logs → Calls
    - Find failed call, check error details
