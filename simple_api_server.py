@@ -54,13 +54,16 @@ async def root():
     """Health check endpoint."""
     return {
         "message": "AIDN API Server is running",
-        "version": "1.0.0",
+        "version": "1.0.1",
         "endpoints": {
             "webhook": "/twilio-webhook",
             "audio_stream": "/twilio-audio-stream",
             "test_call": "/test-call",
             "ws_test": "/ws-test",
-            "simple_webhook": "/simple-webhook"
+            "simple_webhook": "/simple-webhook",
+            "stream_test": "/stream-test-webhook",
+            "minimal_stream": "/minimal-stream-webhook",
+            "echo_stream": "/echo-stream-webhook (uses Twilio echo server)"
         }
     }
 
@@ -99,6 +102,59 @@ async def stream_test_webhook(request: Request):
 </Response>"""
     
     print(f"📄 TwiML: {twiml}")
+    return Response(content=twiml, media_type="text/xml")
+
+
+@app.post("/minimal-stream-webhook")
+async def minimal_stream_webhook(request: Request):
+    """Ultra-minimal Stream test - no query params, just the bare essentials."""
+    print("📞 Minimal stream webhook called!")
+    
+    # Get the simplest possible WebSocket URL
+    webhook_base_url = os.getenv("LIVEKIT_WEBHOOK_BASE_URL", "https://aidn-production.up.railway.app")
+    ws_url = webhook_base_url.replace("https://", "wss://").replace("http://", "ws://")
+    
+    # Just the endpoint, no query params
+    stream_url = f"{ws_url}/twilio-audio-stream"
+    
+    print(f"🔗 Minimal Stream URL: {stream_url}")
+    
+    # Simplest possible TwiML with Stream - try inbound_track only
+    twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Start>
+        <Stream url="{stream_url}"/>
+    </Start>
+    <Say voice="Polly.Matthew">Stream started. You should hear this after the stream connects.</Say>
+    <Pause length="60"/>
+</Response>"""
+    
+    print(f"📄 Minimal TwiML: {twiml}")
+    return Response(content=twiml, media_type="text/xml")
+
+
+@app.post("/echo-stream-webhook")
+async def echo_stream_webhook(request: Request):
+    """Test with Twilio's own echo server to verify Stream TwiML works at all."""
+    print("📞 Echo stream webhook called - using Twilio's echo server!")
+    
+    # Twilio provides a public echo WebSocket for testing
+    # If this works, it confirms our TwiML is correct and issue is our WebSocket
+    echo_url = "wss://media-streams-echo.twilio.com/echo"
+    
+    print(f"🔗 Echo URL: {echo_url}")
+    
+    twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="Polly.Matthew">Testing with Twilio echo server. Speak and you should hear yourself.</Say>
+    <Start>
+        <Stream url="{echo_url}"/>
+    </Start>
+    <Pause length="30"/>
+    <Say voice="Polly.Matthew">Echo test complete.</Say>
+</Response>"""
+    
+    print(f"📄 Echo TwiML: {twiml}")
     return Response(content=twiml, media_type="text/xml")
 
 
@@ -355,9 +411,10 @@ async def _handle_outgoing_audio(websocket: WebSocket, bridge: TwilioAudioBridge
 async def test_call(request: Request):
     """Create a test call to verify the audio bridge works end-to-end.
     
-    Optionally accepts JSON body with lead info:
+    Accepts JSON body with optional lead info and webhook:
     {
         "phone": "+19086197628",
+        "webhook": "twilio-webhook",  // Options: twilio-webhook, simple-webhook, echo-stream-webhook, minimal-stream-webhook
         "first_name": "Tommy",
         "last_name": "Roldan",
         "address": "123 Main Street",
@@ -388,6 +445,7 @@ async def test_call(request: Request):
         
         # Extract lead details (with defaults for testing)
         target_phone = lead_info.get("phone", "+19086197628")
+        webhook_type = lead_info.get("webhook", "twilio-webhook")  # Default to main webhook
         first_name = lead_info.get("first_name", "Test")
         last_name = lead_info.get("last_name", "User")
         address = lead_info.get("address", "123 Test Street")
@@ -395,6 +453,16 @@ async def test_call(request: Request):
         state = lead_info.get("state", "FL")
         zip_code = lead_info.get("zip_code", "33544")
         county = lead_info.get("county", "Pasco")
+        
+        # Map webhook types to endpoints
+        webhook_endpoints = {
+            "twilio-webhook": "/twilio-webhook",
+            "simple-webhook": "/simple-webhook",
+            "echo-stream-webhook": "/echo-stream-webhook",
+            "minimal-stream-webhook": "/minimal-stream-webhook",
+            "stream-test-webhook": "/stream-test-webhook"
+        }
+        webhook_path = webhook_endpoints.get(webhook_type, "/twilio-webhook")
         
         # Generate unique identifiers for this call
         lead_id = str(uuid4())
@@ -414,9 +482,10 @@ async def test_call(request: Request):
             "state": state,
             "county": county
         })
-        webhook_url = f"{webhook_base_url}/twilio-webhook?{lead_params}"
+        webhook_url = f"{webhook_base_url}{webhook_path}?{lead_params}"
         
         print(f"📞 Creating test call...")
+        print(f"📌 Webhook: {webhook_path}")
         print(f"👤 Lead: {first_name} {last_name}")
         print(f"📍 Address: {address}, {city}, {state} {zip_code}")
         print(f"🏠 County: {county}")
@@ -441,6 +510,8 @@ async def test_call(request: Request):
             "room_name": room_name,
             "lead_id": lead_id,
             "agent_id": agent_id,
+            "webhook_type": webhook_type,
+            "webhook_path": webhook_path,
             "lead_info": {
                 "first_name": first_name,
                 "last_name": last_name,
@@ -453,7 +524,7 @@ async def test_call(request: Request):
             },
             "webhook_url": webhook_url,
             "status": call.status,
-            "message": f"Test call initiated for {first_name} {last_name}!"
+            "message": f"Test call initiated for {first_name} {last_name} using {webhook_type}!"
         }
         
     except Exception as e:
