@@ -300,10 +300,30 @@ async def _handle_outgoing_audio(websocket: WebSocket, bridge: TwilioAudioBridge
 
 
 @app.post("/test-call")
-async def test_call():
-    """Create a test call to verify the audio bridge works end-to-end."""
+async def test_call(request: Request):
+    """Create a test call to verify the audio bridge works end-to-end.
+    
+    Optionally accepts JSON body with lead info:
+    {
+        "phone": "+19086197628",
+        "first_name": "Tommy",
+        "last_name": "Roldan",
+        "address": "123 Main Street",
+        "city": "Tampa",
+        "state": "FL",
+        "zip_code": "33544",
+        "county": "Pasco"
+    }
+    """
     try:
         from twilio.rest import Client
+        
+        # Try to get lead info from request body
+        lead_info = {}
+        try:
+            lead_info = await request.json()
+        except:
+            pass  # No body or invalid JSON, use defaults
         
         # Initialize Twilio client
         account_sid = os.getenv("TWILIO_ACCOUNT_SID")
@@ -314,19 +334,42 @@ async def test_call():
         if not all([account_sid, auth_token, twilio_number, webhook_base_url]):
             return {"error": "Missing Twilio or webhook configuration"}
         
+        # Extract lead details (with defaults for testing)
+        target_phone = lead_info.get("phone", "+19086197628")
+        first_name = lead_info.get("first_name", "Test")
+        last_name = lead_info.get("last_name", "User")
+        address = lead_info.get("address", "123 Test Street")
+        city = lead_info.get("city", "Tampa")
+        state = lead_info.get("state", "FL")
+        zip_code = lead_info.get("zip_code", "33544")
+        county = lead_info.get("county", "Pasco")
+        
         # Generate unique identifiers for this call
         lead_id = str(uuid4())
         agent_id = str(uuid4())
         room_name = f"aidn-test-{datetime.now().strftime('%H%M%S')}"
         
-        # Create the webhook URL with parameters
-        webhook_url = f"{webhook_base_url}/twilio-webhook?room={room_name}&lead_id={lead_id}&agent_id={agent_id}"
-        target_phone = "+19086197628"
+        # Create the webhook URL with parameters including lead info
+        import urllib.parse
+        lead_params = urllib.parse.urlencode({
+            "room": room_name,
+            "lead_id": lead_id,
+            "agent_id": agent_id,
+            "first_name": first_name,
+            "last_name": last_name,
+            "address": address,
+            "city": city,
+            "state": state,
+            "county": county
+        })
+        webhook_url = f"{webhook_base_url}/twilio-webhook?{lead_params}"
         
         print(f"📞 Creating test call...")
-        print(f"🔗 Webhook URL: {webhook_url}")
+        print(f"👤 Lead: {first_name} {last_name}")
+        print(f"📍 Address: {address}, {city}, {state} {zip_code}")
+        print(f"🏠 County: {county}")
         print(f"📱 Calling: {target_phone}")
-        print(f"🏠 Room: {room_name}")
+        print(f"🔗 Room: {room_name}")
         
         twilio_client = Client(account_sid, auth_token)
         
@@ -346,10 +389,19 @@ async def test_call():
             "room_name": room_name,
             "lead_id": lead_id,
             "agent_id": agent_id,
+            "lead_info": {
+                "first_name": first_name,
+                "last_name": last_name,
+                "address": address,
+                "city": city,
+                "state": state,
+                "zip_code": zip_code,
+                "county": county,
+                "phone": target_phone
+            },
             "webhook_url": webhook_url,
-            "target_phone": target_phone,
             "status": call.status,
-            "message": "Test call initiated with audio bridge!"
+            "message": f"Test call initiated for {first_name} {last_name}!"
         }
         
     except Exception as e:
