@@ -452,12 +452,13 @@ async def websocket_test(websocket: WebSocket):
 @app.post("/twilio-webhook")
 async def twilio_webhook(request: Request):
     """
-    Twilio webhook endpoint that connects calls to LiveKit voice agent.
-    
+    Twilio webhook endpoint that connects calls to LiveKit voice agent using DELAYED approach.
+
     This returns TwiML that:
-    1. Creates a LiveKit room for the call
-    2. Returns <Stream> TwiML to connect audio via WebSocket
-    3. Voice agent joins the room and handles the conversation
+    1. Returns <Stream> TwiML immediately (no room creation during webhook)
+    2. Connects audio via WebSocket to delayed endpoint
+    3. LiveKit room created AFTER stream establishes (avoids webhook timeout)
+    4. Voice agent joins the room and handles the conversation
     """
     try:
         # Parse Twilio's form-urlencoded data
@@ -483,22 +484,13 @@ async def twilio_webhook(request: Request):
         print(f"👤 Lead ID: {lead_id}")
         print(f"👔 Agent ID: {agent_id}")
         
-        # Create LiveKit room for this call
-        room_created = await create_livekit_room_for_call(room_name, lead_id, agent_id)
-        
-        if not room_created:
-            print("⚠️ Failed to create LiveKit room, falling back to static response")
-            # Fallback to static TwiML if room creation fails
-            twiml_response = """<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-    <Say voice="Polly.Joanna">We're experiencing technical difficulties. Please try again later.</Say>
-    <Hangup/>
-</Response>"""
-            return Response(content=twiml_response, media_type="text/xml")
-        
-        # Get WebSocket URL for audio streaming
-        webhook_base_url = os.getenv("LIVEKIT_WEBHOOK_BASE_URL", "")
-        
+        # DON'T create LiveKit room during webhook - use delayed approach to avoid timeout
+        # Room creation will happen in WebSocket handler after stream establishes
+        print("🕐 Using DELAYED LiveKit room creation to avoid webhook timeout")
+
+        # Get WebSocket URL for delayed audio streaming
+        webhook_base_url = os.getenv("LIVEKIT_WEBHOOK_BASE_URL", "https://aidn-production.up.railway.app")
+
         # Convert https to wss for WebSocket
         if webhook_base_url.startswith("https://"):
             ws_base_url = webhook_base_url.replace("https://", "wss://")
@@ -506,8 +498,9 @@ async def twilio_webhook(request: Request):
             ws_base_url = webhook_base_url.replace("http://", "ws://")
         else:
             ws_base_url = f"wss://{webhook_base_url}"
-        
-        websocket_url = f"{ws_base_url}/twilio-audio-stream"
+
+        # Use delayed WebSocket endpoint with room info in query params
+        websocket_url = f"{ws_base_url}/twilio-audio-stream-delayed?room={room_name}&lead_id={lead_id}&agent_id={agent_id}"
         
         print(f"🔊 WebSocket URL: {websocket_url}")
         
