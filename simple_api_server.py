@@ -21,8 +21,8 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Add src to path (works both locally and on Railway)
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Add src to path
+sys.path.insert(0, '/Users/thomasroldan/Documents/GitHub/AIDN')
 
 from src.voice_agent.twilio_audio_bridge import (
     TwilioAudioBridge,
@@ -127,7 +127,7 @@ async def twilio_webhook(request: Request):
         
         # For debugging - use simple TTS first to verify audio works
         # Then switch back to Stream for full AI integration
-        USE_STREAM_TWIML = True  # Enabled for AI voice agent
+        USE_STREAM_TWIML = False  # Set to False temporarily to test basic calling
         
         if USE_STREAM_TWIML:
             # Generate TwiML with <Stream> to connect audio

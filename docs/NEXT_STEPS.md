@@ -1,35 +1,47 @@
 # AIDN Next Steps
 
-**Last Updated:** December 25, 2025 - 11:10 AM EST
+**Last Updated:** December 26, 2025 - 3:15 PM EST
 
 ---
 
 ## 🚀 STRATEGIC SHIFT: Real Agents Ready!
 
 Real human agents are ready to use AIDN. New priorities:
-1. **Deploy to production** - Unblock AI voice on calls
+1. **Fix audio bridge** - TwilioAudioBridge not connecting to LiveKit
 2. **Onboard agents** - Get real feedback, generate revenue
 3. **Iterate fast** - Fix issues based on real usage
 4. **YC application** - Submit with battle-tested product
 
 ---
 
-## 🔥 IMMEDIATE: Debug Audio Bridge
+## 🔥 IMMEDIATE: Fix TwilioAudioBridge → LiveKit Connection
 
-### Railway Deployment Status: ✅ DEPLOYED & CONNECTED
-- **Public URL:** `https://aidn-production.up.railway.app`
-- **Twilio Webhook:** Updated ✅
-- **Test Call:** Connects through Railway ✅
-- **Issue:** Audio stream returns "application error"
+### Current Status (Dec 26, 2025)
+- **Railway API:** ✅ Working (`https://aidn-production.up.railway.app`)
+- **Twilio Webhook:** ✅ Returns valid TwiML
+- **Simple TTS:** ✅ Works (user hears AI voice)
+- **Twilio Stream:** ❌ Fails ("application error")
+- **Root Cause:** TwilioAudioBridge not connecting to LiveKit room
+
+### What We Know
+1. WebSocket endpoint works (Python test connects successfully)
+2. Voice agent joins room and waits for bridge
+3. Bridge never appears in LiveKit room (30s timeout)
+4. Either Twilio isn't reaching WebSocket OR bridge fails to connect to LiveKit
 
 ### Next Session Steps
-1. [ ] Check Railway deploy logs for error details
-2. [ ] Debug `/twilio-audio-stream` WebSocket endpoint
-3. [ ] Verify LiveKit room creation is working
-4. [ ] Test audio bridge connection
-5. [ ] Fix any issues and re-test call
+1. [ ] **Check Railway logs** - Login to Railway dashboard, view deployment logs during test call
+2. [ ] **Verify environment variables** - Confirm LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET are set correctly
+3. [ ] **Add diagnostic endpoint** - Create `/test-livekit-connection` to verify LiveKit connectivity from Railway
+4. [ ] **Add verbose logging** - Add traceback logging to `connect_to_livekit()` exception handler
+5. [ ] **Test again** - Make test call and check new logs
 
-### After URL Configuration
+### Quick Fix Options
+- Option A: Check Railway env vars in dashboard
+- Option B: Add `/test-livekit-connection` endpoint and deploy
+- Option C: Add more logging and redeploy
+
+### After Audio Bridge Fixed
 - [ ] Wire up Call button onClick (30 min fix)
 - [ ] Test full call flow end-to-end
 - [ ] Onboard first real agent
@@ -106,6 +118,19 @@ Real human agents are ready to use AIDN. New priorities:
 ---
 
 ## ✅ COMPLETED
+
+### December 26, 2025 - Audio Bridge Debugging ⭐
+- [x] Restart voice agent worker (registered: AW_9iJ7GrbcbhwA)
+- [x] Restart API server on localhost:8000
+- [x] Test simple TTS mode - WORKS!
+- [x] Test WebSocket from Python - connects to Railway successfully
+- [x] Analyze voice agent logs - identified 30s timeout waiting for bridge
+- [x] Fixed main.py to wait for audio bridge before starting session
+- [x] Re-enabled USE_STREAM_TWIML = True
+- [x] Documented root cause in DEBUG_ANALYSIS.md
+- [ ] Check Railway logs for actual error
+- [ ] Verify LiveKit env vars on Railway
+- [ ] Fix bridge connection issue
 
 ### December 25, 2025 Morning - Railway Testing ⭐
 - [x] Add missing LIVEKIT_API_KEY variable

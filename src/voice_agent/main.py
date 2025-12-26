@@ -52,7 +52,7 @@ async def prewarm(proc: agents.JobProcess):
     logger.info("✅ AIDN voice agent prewarm complete")
 
 
-async def request_handler(req: JobRequest):
+async def request_handler(req: JobRequest) -> agents.AutoAccept:
     """
     Handle incoming job requests.
     
@@ -63,10 +63,10 @@ async def request_handler(req: JobRequest):
     
     if room_name.startswith("aidn-"):
         logger.info(f"📞 Accepting call room: {room_name}")
-        await req.accept()
+        return agents.AutoAccept()
     else:
         logger.info(f"🚫 Rejecting non-AIDN room: {room_name}")
-        await req.reject()
+        raise agents.RequestCancelledError("Not an AIDN call room")
 
 
 async def entrypoint(ctx: JobContext):
@@ -146,38 +146,8 @@ async def entrypoint(ctx: JobContext):
     # Wait for audio tracks from the Twilio bridge
     logger.info("🔊 Waiting for Twilio audio bridge...")
     
-    # Wait for the bridge participant to join and publish audio
-    max_wait = 30  # Wait up to 30 seconds for audio bridge
-    waited = 0
-    bridge_connected = False
-    
-    while waited < max_wait:
-        # Check for remote participants with audio tracks
-        for participant in ctx.room.remote_participants.values():
-            if "twilio-bridge" in participant.identity:
-                # Check if they have an audio track
-                for track_pub in participant.track_publications.values():
-                    if track_pub.kind.name == "KIND_AUDIO":
-                        bridge_connected = True
-                        logger.info(f"✅ Twilio audio bridge connected: {participant.identity}")
-                        break
-            if bridge_connected:
-                break
-        
-        if bridge_connected:
-            break
-            
-        await asyncio.sleep(0.5)
-        waited += 0.5
-        
-        if waited % 5 == 0:
-            logger.info(f"⏳ Still waiting for audio bridge... ({waited}s)")
-    
-    if not bridge_connected:
-        logger.warning("⚠️ Audio bridge did not connect within timeout, proceeding anyway")
-    
-    # Small additional delay for audio track to be fully ready
-    await asyncio.sleep(0.5)
+    # Give the bridge time to publish its audio track
+    await asyncio.sleep(1)
     
     # Start the session
     logger.info("🚀 Starting AIDN voice agent session...")
@@ -186,11 +156,8 @@ async def entrypoint(ctx: JobContext):
     # Keep the session alive until the room closes
     logger.info("🎙️ Voice agent is now active on the call")
     
-    # Wait for the session to end (room will close when call ends)
-    try:
-        await session.drain()
-    except Exception as e:
-        logger.info(f"Session ended: {e}")
+    # Wait for disconnect
+    await ctx.wait_for_disconnect()
     
     logger.info(f"📴 Call ended in room: {room_name}")
 

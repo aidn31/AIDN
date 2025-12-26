@@ -1,17 +1,23 @@
 # AIDN Project Status
 
-**Last Updated:** December 25, 2025 - 11:10 AM EST
-**Current Phase:** RAILWAY DEPLOYED - DEBUGGING AUDIO BRIDGE
+**Last Updated:** December 26, 2025 - 3:15 PM EST
+**Current Phase:** DEBUGGING AUDIO BRIDGE - LiveKit Connection Issue
 **Updated By:** Claude
 
 ---
 
 ## 🎯 Current Goal
-Debug audio bridge - calls connect through Railway but getting "application error" on the audio stream.
+Debug TwilioAudioBridge not connecting to LiveKit room. Calls connect, TTS works, but Twilio Stream fails.
 
 **Railway URL:** `https://aidn-production.up.railway.app`
 **Twilio Webhook:** Updated to Railway URL ✅
-**Test Call Result:** Call connects, but audio stream returns application error
+**Test Call Result:** Call connects, TTS plays, but Stream causes "application error"
+
+### Root Cause Identified (Dec 26):
+- The TwilioAudioBridge on Railway is **not successfully connecting to the LiveKit room**
+- Voice agent waits 30 seconds for bridge, but it never appears
+- Most likely cause: Environment variables or LiveKit RTC library issue on Railway
+- See `docs/DEBUG_ANALYSIS.md` for full technical breakdown
 
 ---
 
@@ -130,6 +136,19 @@ Debug audio bridge - calls connect through Railway but getting "application erro
 ---
 
 ## 📝 Session History
+
+### December 26, 2025 Afternoon - Audio Bridge Debugging ⭐
+- Restarted voice agent worker - successfully registered with LiveKit Cloud
+- Restarted API server - running on localhost:8000
+- Updated Twilio webhook back to Railway (was temporarily on ngrok)
+- Tested simple TTS mode: ✅ WORKS (user hears "Hey there! This is the AI calling...")
+- Tested Stream mode: ❌ FAILS ("application error")
+- WebSocket test from Python: ✅ Successfully connects to Railway
+- Voice agent logs show: "⏳ Still waiting for audio bridge..." for 30 seconds
+- **Root Cause:** TwilioAudioBridge is NOT connecting to LiveKit room
+- Fixed `main.py` to wait up to 30s for audio bridge before starting session
+- Re-enabled `USE_STREAM_TWIML = True` for production
+- **Next:** Check Railway logs, verify LiveKit environment variables
 
 ### December 25, 2025 Morning - Railway Testing ⭐
 - Added missing LIVEKIT_API_KEY variable

@@ -1,8 +1,8 @@
 # AIDN Next Session Briefing
 
-**Date Prepared:** December 23, 2025
-**Session Completed:** Comprehensive Repository Analysis
-**Next Session Focus:** Repository Consolidation
+**Date Prepared:** December 26, 2025
+**Session Completed:** Audio Bridge Debugging
+**Next Session Focus:** Fix TwilioAudioBridge → LiveKit Connection
 
 ---
 
@@ -18,107 +18,141 @@
 
 ---
 
-## 📋 SESSION SUMMARY
+## 📋 SESSION SUMMARY (December 26, 2025)
 
-### MAJOR DISCOVERY
-Found 3 complete AIDN implementations already working in workshops repository:
-- **Voice Agent:** workshops/livekit-rag-voice-agent/aidn_agent.py
-- **Dashboard Agent:** workshops/aidn-dashboard-agent/
-- **Lead Management:** workshops/aidn-lead-management-agent/
+### WHAT WE FOUND
+- **Simple TTS mode works** - User heard "Hey there! This is the AI calling..."
+- **Stream mode fails** - Twilio plays "application error"
+- **WebSocket endpoint works** - Python test connects to Railway successfully
+- **Voice agent works** - Joins room, waits 30s for audio bridge, bridge never appears
 
-### STRATEGIC PIVOT
-- **FROM:** Build from scratch
-- **TO:** Consolidate existing implementations
-- **TIMELINE:** 7 weeks to YC application (February 9th)
+### ROOT CAUSE IDENTIFIED
+**TwilioAudioBridge is NOT connecting to the LiveKit room.**
 
-### KEY DECISIONS LOCKED IN
-- Use AIDN_SPECIFICATION.md as master database schema
-- Keep existing LiveKit/Twilio configuration (working)
-- Streamlit UI for prototype (React for product)
-- Single-agent setup for simplicity
-- Focus on 5 core objection handling scenarios
-- Real phone calls for YC demo
+When Twilio connects to Railway's WebSocket and sends "start" event:
+1. Bridge receives "start" ✅
+2. Bridge calls `connect_to_livekit()` ❌ FAILS HERE (silently)
+3. Bridge never joins LiveKit room
+4. Voice agent waits 30s, times out
+5. No audio exchanged
+
+### LIKELY CAUSES (in order)
+1. **Environment variables wrong/missing on Railway** - LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET
+2. **LiveKit RTC library issue** - Native bindings may not work on Railway's Linux
+3. **Railway WebSocket handling** - Some edge case with Twilio's client
+4. **Error silently caught** - Exception in connect_to_livekit() not visible
 
 ---
 
 ## 🔥 IMMEDIATE NEXT PRIORITIES
 
-### Week 1 Tasks (Start Monday Dec 26)
-1. **Create unified AIDN project structure**
-2. **Consolidate 3 existing AIDN repositories**
-3. **Create database migration script** (existing → AIDN spec)
-4. **Test voice agent works in new structure**
-5. **Verify Twilio/LiveKit integration intact**
+### Priority 1: Check Railway Environment Variables
+1. Login to Railway dashboard
+2. Go to aidn-production service
+3. Click Variables tab
+4. Verify these are set:
+   - `LIVEKIT_URL=wss://aidn-voice-wgu29g5y.livekit.cloud`
+   - `LIVEKIT_API_KEY=<your key>`
+   - `LIVEKIT_API_SECRET=<your secret>`
 
-### Success Criteria Week 1
-- Single unified codebase
-- Voice agent makes outbound calls
-- Database schema matches AIDN_SPECIFICATION.md
-- No regressions in working functionality
+### Priority 2: Check Railway Logs
+1. In Railway dashboard, go to Deployments
+2. Click current deployment
+3. View logs
+4. Make a test call: `curl -X POST https://aidn-production.up.railway.app/test-call`
+5. Look for:
+   - "🎤 WebSocket connected for room"
+   - "Twilio stream started"
+   - "Failed to connect to LiveKit"
+   - Any Python exceptions
+
+### Priority 3: Add Diagnostic Endpoint (if needed)
+Add to `simple_api_server.py`:
+```python
+@app.get("/test-livekit-connection")
+async def test_livekit():
+    from src.voice_agent.twilio_audio_bridge import TwilioAudioBridge
+    bridge = TwilioAudioBridge("test-room", "test-lead", "test-agent")
+    try:
+        result = await bridge.connect_to_livekit()
+        await bridge.disconnect()
+        return {"livekit_connected": result}
+    except Exception as e:
+        import traceback
+        return {"error": str(e), "traceback": traceback.format_exc()}
+```
 
 ---
 
 ## 📊 CURRENT STATUS
 
-| Component | Status | Location | Action Needed |
-|-----------|--------|----------|---------------|
-| Voice Agent | 🟢 WORKING | workshops/livekit-rag-voice-agent | Consolidate |
-| Database | 🟡 MULTIPLE | 3 different schemas | Unify to AIDN spec |
-| Dashboard | 🟢 WORKING | workshops/aidn-dashboard-agent | Consolidate |
-| Lead Management | 🟢 WORKING | workshops/aidn-lead-management-agent | Consolidate |
-| Phone Integration | 🟢 WORKING | Twilio/LiveKit bridge | Keep unchanged |
+| Component | Status | Notes |
+|-----------|--------|-------|
+| **Railway API** | 🟢 Working | `https://aidn-production.up.railway.app` |
+| **Twilio Webhook** | 🟢 Working | Returns valid TwiML |
+| **Simple TTS** | 🟢 Working | User hears AI voice |
+| **Voice Agent** | 🟢 Working | Joins rooms, waits for bridge |
+| **Twilio Stream** | 🔴 Failing | "Application error" |
+| **Audio Bridge** | 🔴 Failing | Not connecting to LiveKit |
 
 ---
 
-## ⚠️ CRITICAL NOTES
+## 📁 KEY FILES
 
-### DO NOT CHANGE
-- Existing LiveKit configuration
-- Twilio integration settings
-- Working voice agent core logic
-
-### MUST IMPLEMENT
-- 3-ring retry logic for calls
-- 5 specific objection handling scenarios
-- Appointment slot generation system
-- Lead prioritization queue
-
-### DEMO REQUIREMENTS
-- Real phone calls (use Tommy's number)
-- End-to-end: Dashboard → Call → Conversation → Appointment
-- Natural conversation with objection handling
-- Live demo for YC presentation
+| File | Purpose |
+|------|---------|
+| `simple_api_server.py` | FastAPI with webhook + WebSocket endpoints |
+| `src/voice_agent/twilio_audio_bridge.py` | Bridges Twilio ↔ LiveKit audio |
+| `src/voice_agent/main.py` | LiveKit voice agent worker |
+| `docs/DEBUG_ANALYSIS.md` | Full technical breakdown of issue |
 
 ---
 
-## 📁 DOCUMENTATION STATUS
+## 🔧 CHANGES MADE THIS SESSION
 
-All files updated in `/docs`:
-- ✅ PROJECT_STATUS.md - Current state and blockers
-- ✅ NEXT_STEPS.md - Week-by-week action plan
-- ✅ DECISION_LOG.md - All strategic decisions
-- ✅ ARCHITECTURE.md - Technical approach
-- ✅ CHANGELOG.md - What was accomplished
-- ✅ ANALYSIS_SUMMARY.md - Complete findings
+### `src/voice_agent/main.py`
+- Added 30-second wait loop for audio bridge connection
+- Logs "⏳ Still waiting for audio bridge..." every 5 seconds
+- Proceeds with warning after timeout (instead of failing)
 
----
+### `simple_api_server.py`
+- Re-enabled `USE_STREAM_TWIML = True` (was False for testing)
 
-## 🎯 SUCCESS METRICS
+### `docs/PROJECT_STATUS.md`
+- Updated with December 26 session progress
+- Added root cause analysis
 
-### By January 19th (Demo Ready)
-- [ ] Single unified AIDN codebase
-- [ ] Voice agent calls with retry logic
-- [ ] Handles 5 core objections naturally
-- [ ] Books appointments end-to-end
-- [ ] Clean Streamlit dashboard
-- [ ] Live demo perfected
-
-### By February 9th (YC Deadline)
-- [ ] Demo video recorded
-- [ ] YC application submitted
-- [ ] Technical architecture documented
-- [ ] Product roadmap finalized
+### `docs/NEXT_STEPS.md`
+- Updated immediate priorities
+- Added specific debugging steps
 
 ---
 
-**READY TO BEGIN CONSOLIDATION PHASE** 🚀
+## ⚠️ SERVICES TO START
+
+Before testing:
+```bash
+# Terminal 1: Voice Agent Worker
+cd /Users/thomasroldan/Documents/GitHub/AIDN
+source .venv/bin/activate
+python3 -m src.voice_agent.main start
+
+# The API server runs on Railway, not locally
+# Twilio webhook points to: https://aidn-production.up.railway.app/twilio-webhook
+```
+
+---
+
+## 🎯 SUCCESS CRITERIA
+
+Audio bridge is fixed when:
+1. ✅ Test call connects
+2. ✅ User hears TTS intro ("Hey, please hold...")
+3. ✅ Voice agent joins LiveKit room
+4. 🔴 TwilioAudioBridge joins same room → **THIS IS FAILING**
+5. 🔴 AI speaks through phone → Blocked by #4
+6. 🔴 User can talk back → Blocked by #4
+
+---
+
+**READY TO DEBUG AUDIO BRIDGE** 🔧
