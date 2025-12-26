@@ -505,7 +505,7 @@ async def twilio_webhook(request: Request):
         print(f"🔊 WebSocket URL: {websocket_url}")
         
         # Enable full AI streaming with LiveKit voice agent
-        USE_STREAM_TWIML = True  # Re-enabled to debug the Stream TwiML issue
+        USE_STREAM_TWIML = True  # FORCE DEPLOYMENT: Enable AI voice agent with persona and scripts
         
         if USE_STREAM_TWIML:
             # Generate TwiML with <Stream> to connect audio
