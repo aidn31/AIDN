@@ -231,9 +231,19 @@ class TwilioAudioBridge:
             # Create and connect to room
             self.room = rtc.Room()
             
-            # Set up event handlers
-            self.room.on("track_subscribed", self._on_track_subscribed)
-            self.room.on("disconnected", self._on_disconnected)
+            # Set up event handlers using synchronous wrappers
+            # LiveKit .on() requires sync callbacks - use asyncio.create_task for async work
+            @self.room.on("track_subscribed")
+            def on_track_subscribed(
+                track: rtc.Track,
+                publication: rtc.RemoteTrackPublication,
+                participant: rtc.RemoteParticipant
+            ):
+                asyncio.create_task(self._on_track_subscribed(track, publication, participant))
+            
+            @self.room.on("disconnected")
+            def on_disconnected():
+                asyncio.create_task(self._on_disconnected())
             
             # Connect to the room
             await self.room.connect(self.livekit_url, token)
