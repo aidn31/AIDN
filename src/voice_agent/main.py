@@ -146,8 +146,38 @@ async def entrypoint(ctx: JobContext):
     # Wait for audio tracks from the Twilio bridge
     logger.info("🔊 Waiting for Twilio audio bridge...")
     
-    # Give the bridge time to publish its audio track
-    await asyncio.sleep(1)
+    # Wait for the bridge participant to join and publish audio
+    max_wait = 30  # Wait up to 30 seconds for audio bridge
+    waited = 0
+    bridge_connected = False
+    
+    while waited < max_wait:
+        # Check for remote participants with audio tracks
+        for participant in ctx.room.remote_participants.values():
+            if "twilio-bridge" in participant.identity:
+                # Check if they have an audio track
+                for track_pub in participant.track_publications.values():
+                    if track_pub.kind.name == "KIND_AUDIO":
+                        bridge_connected = True
+                        logger.info(f"✅ Twilio audio bridge connected: {participant.identity}")
+                        break
+            if bridge_connected:
+                break
+        
+        if bridge_connected:
+            break
+            
+        await asyncio.sleep(0.5)
+        waited += 0.5
+        
+        if waited % 5 == 0:
+            logger.info(f"⏳ Still waiting for audio bridge... ({waited}s)")
+    
+    if not bridge_connected:
+        logger.warning("⚠️ Audio bridge did not connect within timeout, proceeding anyway")
+    
+    # Small additional delay for audio track to be fully ready
+    await asyncio.sleep(0.5)
     
     # Start the session
     logger.info("🚀 Starting AIDN voice agent session...")
