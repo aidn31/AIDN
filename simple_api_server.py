@@ -125,9 +125,8 @@ async def twilio_webhook(request: Request):
         
         print(f"🔊 WebSocket URL: {websocket_url}")
         
-        # For debugging - use simple TTS first to verify audio works
-        # Then switch back to Stream for full AI integration
-        USE_STREAM_TWIML = False  # Set to False temporarily to test basic calling
+        # Enable full AI streaming with LiveKit voice agent
+        USE_STREAM_TWIML = True  # Enable for full AI conversation
         
         if USE_STREAM_TWIML:
             # Generate TwiML with <Stream> to connect audio
