@@ -1,33 +1,30 @@
 # AIDN Project Status
 
-**Last Updated:** December 26, 2025 - 11:50 PM EST
-**Current Phase:** PHASE 2 - LiveKit Integration Simplification
+**Last Updated:** December 26, 2025 - 11:45 PM EST
+**Current Phase:** PHASE 2 - Stream TwiML Debugging
 **Updated By:** Claude (AI Assistant)
 
 ---
 
 ## 🎯 Current Goal
 
-Fix LiveKit integration timing issues that cause "application error" during Twilio Stream connections.
+Debug Stream TwiML generation that causes "application error" during phone calls.
 
 **Railway URL:** `https://aidn-production.up.railway.app`
 **Twilio Webhook:** Configured to Railway URL ✅
-**Phase 1 Result:** All track configurations work without LiveKit ✅
-**Phase 2 Goal:** Isolate and fix LiveKit integration timing
+**Voice Agent:** Ready with persona and scripts ✅
+**Current Issue:** Stream TwiML crashes webhook, preventing AI conversations
 
-### 🎯 MAJOR BREAKTHROUGH (Dec 26 Late Evening):
+### 🎯 SESSION UPDATE (Dec 26 Very Late Evening):
 
-**Phase 1 Track Testing Results:**
-- ✅ `track="inbound"` - Works perfectly
-- ✅ `track="outbound"` - Works perfectly
-- ✅ `track=""` (default) - Works perfectly
-- ❌ `track="both_tracks"` + LiveKit - "Application error"
+**Phase 2 Debugging Results:**
+- ✅ **Async callback fix deployed:** `asyncio.create_task()` wrappers working
+- ✅ **Missing import fixed:** `generate_stream_twiml` function imported
+- ✅ **URL parameter duplication fixed:** WebSocket URL generation corrected
+- ✅ **Voice agent confirmed working:** Loads scripts, persona, objection handling
+- ❌ **Stream TwiML still failing:** "Application error occurred" on phone calls
 
-**Root Cause Identified:** The issue is NOT track configuration - it's LiveKit integration timing!
-
-- ✅ **Twilio Stream TwiML:** Works with any track configuration
-- ✅ **WebSocket Connection:** Establishes successfully
-- ❌ **LiveKit Integration:** Creating rooms during webhook causes timeout/blocking
+**Root Cause Narrowed:** Issue is in `generate_stream_twiml()` function or the TwiML it generates, NOT infrastructure
 
 ---
 

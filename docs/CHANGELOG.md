@@ -4,6 +4,60 @@ All notable changes to the AIDN project are documented in this file.
 
 ---
 
+## [1.2.4] - 2025-12-26 - STREAM TWIML DEBUGGING SESSION 🐛
+
+### Session: December 26, 2025 Very Late Evening (11:45 PM EST)
+**Worked By:** Claude (AI Assistant) with Tommy Roldan
+
+### 🎯 Session Goal: Enable AI Voice Agent Conversations
+
+**User Request:** Why is the AI agent not talking with the phone script and persona?
+
+### 🔍 Root Cause Analysis Completed
+
+**✅ Issues Resolved:**
+- **Missing Function Import:** Added `generate_stream_twiml` import to `simple_api_server.py`
+- **URL Parameter Duplication:** Fixed WebSocket URL generation in main webhook
+- **Async Callbacks Confirmed:** `asyncio.create_task()` wrappers properly deployed
+- **Voice Agent Status:** Confirmed working - loads 7 scripts, AIDN persona, objection handling ready
+
+**❌ Remaining Issue Identified:**
+- **Stream TwiML Generation:** Causes "application error occurred" when enabled
+- **Webhook Failure:** `generate_stream_twiml()` function or generated TwiML crashes webhook
+- **No LiveKit Room Creation:** Voice agent never receives room requests due to webhook failure
+
+### 🛠️ Technical Changes
+
+**Files Modified:**
+- `simple_api_server.py` - Added missing import, fixed URL parameters, temporarily disabled Stream TwiML
+- Multiple deployment attempts to force Railway updates
+
+**Deployment Strategy:**
+- Confirmed async callback fixes are deployed
+- Verified imports and URL fixes are active
+- Temporarily disabled Stream TwiML to restore working phone calls
+
+### 📊 Testing Results
+
+| Test Type | Status | User Experience |
+|-----------|--------|-----------------|
+| **Simple TTS Calls** | ✅ WORKING | Professional voice message, no errors |
+| **Stream TwiML Enabled** | ❌ FAILING | "Application error occurred" |
+| **Voice Agent Infrastructure** | ✅ READY | Scripts loaded, persona ready, waiting for audio |
+| **LiveKit Rooms** | ❌ NOT CREATED | Webhook crashes before room creation |
+
+### 🎯 Status Summary
+
+**Current State:**
+- ✅ **Working Phone Calls:** Simple TTS approach works perfectly
+- ✅ **Voice Agent Ready:** AIDN persona, scripts, objection handling all working
+- ❌ **Stream Connection:** TwiML generation prevents AI conversations
+
+**Next Session Priority:**
+Debug the exact error in `generate_stream_twiml()` function to enable real AI conversations with AIDN persona and scripts.
+
+---
+
 ## [1.2.3] - 2025-12-26 - PHASE 2 LIVEKIT INTEGRATION SIMPLIFICATION 🔧
 
 ### Session: December 26, 2025 Very Late Evening (11:50 PM EST)

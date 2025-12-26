@@ -1,6 +1,6 @@
 # AIDN Next Steps
 
-**Last Updated:** December 26, 2025 - 11:50 PM EST
+**Last Updated:** December 26, 2025 - 11:45 PM EST
 **Updated By:** Claude (AI Assistant)
 
 ---
@@ -15,37 +15,33 @@ Real human agents are ready to use AIDN. New priorities:
 
 ---
 
-## 🔥 IMMEDIATE: Phase 2 LiveKit Integration Fix
+## 🔥 IMMEDIATE: Stream TwiML Debugging
 
-### 🎯 PHASE 1 COMPLETE! (Dec 26, 2025 - 11:50 PM EST)
+### 🎯 CURRENT STATUS (Dec 26, 2025 - 11:45 PM EST)
 
-**✅ Track Configuration Testing Results:**
-- **All track configurations work without LiveKit:** inbound, outbound, both_tracks, default
-- **Issue identified:** LiveKit integration timing, NOT track configuration
-- **Twilio Stream TwiML:** Works perfectly with any track setting
+**✅ Infrastructure Confirmed Working:**
+- Voice agent with AIDN persona and scripts ready
+- Async callbacks fixed with `asyncio.create_task()`
+- Missing imports resolved
+- URL parameter conflicts fixed
+- Simple TTS calls work perfectly
 
-**✅ Root Cause Found:**
-LiveKit room creation during webhook processing causes timeout/blocking that Twilio interprets as "application error"
+**❌ Remaining Issue:**
+Stream TwiML generation causes "application error occurred" on phone calls
 
-### 📋 PHASE 2: LiveKit Integration Timing Fix
+### 📋 IMMEDIATE: Debug Stream TwiML Issue
 
-#### IMMEDIATE: Test Incremental Integration (Next 1-2 hours)
+#### NEXT SESSION PRIORITIES (1-2 hours)
 
-1. **[ ] Test Pure Twilio Stream (No LiveKit):**
-   ```bash
-   curl -X POST https://aidn-production.up.railway.app/test-call \
-     -d '{"phone": "+19086197628", "webhook": "stream-no-livekit-webhook"}'
-   ```
-   - Should work perfectly (confirms Twilio Stream foundation)
-   - Logs stream events without any LiveKit complexity
+1. **[ ] Debug `generate_stream_twiml()` Function:**
+   - Add error logging to webhook to capture exact failure
+   - Test TwiML generation in isolation
+   - Check if delayed WebSocket endpoint exists and works
 
-2. **[ ] Test Delayed LiveKit Integration:**
-   ```bash
-   curl -X POST https://aidn-production.up.railway.app/test-call \
-     -d '{"phone": "+19086197628", "webhook": "stream-delayed-livekit-webhook"}'
-   ```
-   - Creates LiveKit room AFTER stream establishes (avoids webhook timeout)
-   - Tests if timing is the core issue
+2. **[ ] Test Alternative Stream Approaches:**
+   - Try direct Stream TwiML without delayed approach
+   - Test known working Stream patterns from Phase 1
+   - Simplify Stream TwiML to minimal working example
 
 #### NEXT: Voice Agent Integration (2-3 hours)
 1. **[ ] Connect Voice Agent Worker to Working Stream**
