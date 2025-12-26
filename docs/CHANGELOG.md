@@ -4,6 +4,70 @@ All notable changes to the AIDN project are documented in this file.
 
 ---
 
+## [1.2.1] - 2025-12-26 - DEBUGGING & SDK COMPATIBILITY FIXES 🔧
+
+### Session: December 26, 2025 Evening (9:15 PM EST)
+**Worked By:** Claude (AI Assistant) with Tommy Roldan
+
+### 🐛 Bug Fixes
+
+- **Fixed LiveKit Async Callback Error** (`twilio_audio_bridge.py`)
+  - Changed async callbacks to sync wrappers with `asyncio.create_task`
+  - Error was: "Cannot register an async callback with `.on()`"
+  - Solution: Use `@room.on("event")` decorator with sync function
+
+- **Fixed Voice Agent SDK Compatibility** (`main.py`)
+  - Updated `request_handler` to return `None` instead of `agents.AutoAccept`
+  - Now calls `await req.accept()` to accept job requests
+  - Replaced `ctx.wait_for_disconnect()` with room disconnect event listener
+
+### ✅ Added
+
+- **Lead Info Support for Test Calls** (`simple_api_server.py`)
+  - `/test-call` now accepts JSON body with lead details
+  - Passes first_name, last_name, address, city, state, county to webhook
+
+- **WebSocket Test Endpoint** (`/ws-test`)
+  - Simple echo WebSocket for testing Railway WS support
+  - Confirmed: Railway supports WebSocket ✅
+
+- **Simple Webhook** (`/simple-webhook`)
+  - Returns basic `<Say>` TwiML only
+  - For isolating TwiML issues from Stream issues
+  - Confirmed: Simple TwiML works ✅
+
+- **Stream Test Webhook** (`/stream-test-webhook`)
+  - Tests Stream without LiveKit room creation
+  - For isolating Stream vs LiveKit issues
+
+### 🔬 Testing Results
+
+| Test | Result |
+|------|--------|
+| `/simple-webhook` → `<Say>` TwiML | ✅ User hears message |
+| `/ws-test` WebSocket | ✅ Python client connects |
+| `/twilio-audio-stream` WebSocket | ✅ Python client connects |
+| Voice agent worker registration | ✅ Registers with LiveKit |
+| `<Start><Stream>` TwiML | ❌ "Application error" |
+
+### 🔴 Known Issue: Twilio Stream Not Connecting
+
+- Twilio returns "application error" when TwiML contains `<Start><Stream>`
+- WebSocket endpoint works when tested directly
+- Twilio never attempts to connect (no logs)
+- **Investigation ongoing** - see `docs/ISSUES_RESOLVED.md`
+
+### 📁 Files Changed
+
+- `src/voice_agent/twilio_audio_bridge.py` - Async callback fix, TwiML variations
+- `src/voice_agent/main.py` - SDK compatibility fixes
+- `simple_api_server.py` - Test endpoints, lead info support
+- `docs/PROJECT_STATUS.md` - Updated status
+- `docs/ISSUES_RESOLVED.md` - Added new issues
+- `docs/NEXT_STEPS.md` - Updated next steps
+
+---
+
 ## [1.2.0] - 2025-12-25 - AUDIO BRIDGE IMPLEMENTATION 🔊
 
 ### 🎉 MAJOR MILESTONE: TWILIO ↔ LIVEKIT AUDIO BRIDGE COMPLETE

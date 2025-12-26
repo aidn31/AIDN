@@ -76,6 +76,32 @@ async def simple_webhook(request: Request):
     return Response(content=twiml, media_type="text/xml")
 
 
+@app.post("/stream-test-webhook")
+async def stream_test_webhook(request: Request):
+    """Test webhook with Stream but NO LiveKit room creation."""
+    print("📞 Stream test webhook called!")
+    
+    # Get the WebSocket URL (no LiveKit room creation)
+    webhook_base_url = os.getenv("LIVEKIT_WEBHOOK_BASE_URL", "https://aidn-production.up.railway.app")
+    ws_url = webhook_base_url.replace("https://", "wss://").replace("http://", "ws://")
+    stream_url = f"{ws_url}/twilio-audio-stream?room=stream-test&lead_id=test&agent_id=test"
+    
+    print(f"🔗 Stream URL: {stream_url}")
+    
+    twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="Polly.Matthew">Testing the stream connection now.</Say>
+    <Start>
+        <Stream url="{stream_url}" track="both_tracks"/>
+    </Start>
+    <Pause length="30"/>
+    <Say voice="Polly.Matthew">Stream test complete.</Say>
+</Response>"""
+    
+    print(f"📄 TwiML: {twiml}")
+    return Response(content=twiml, media_type="text/xml")
+
+
 @app.websocket("/ws-test")
 async def websocket_test(websocket: WebSocket):
     """Simple WebSocket test endpoint to verify WS works on Railway."""

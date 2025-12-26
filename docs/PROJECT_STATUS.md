@@ -1,23 +1,27 @@
 # AIDN Project Status
 
-**Last Updated:** December 26, 2025 - 3:15 PM EST
-**Current Phase:** DEBUGGING AUDIO BRIDGE - LiveKit Connection Issue
-**Updated By:** Claude
+**Last Updated:** December 26, 2025 - 9:15 PM EST
+**Current Phase:** DEBUGGING TWILIO STREAM - Stream TwiML Not Working
+**Updated By:** Claude (AI Assistant)
 
 ---
 
 ## 🎯 Current Goal
-Debug TwilioAudioBridge not connecting to LiveKit room. Calls connect, TTS works, but Twilio Stream fails.
+
+Debug why Twilio `<Start><Stream>` TwiML causes "application error" while simple `<Say>` TwiML works perfectly.
 
 **Railway URL:** `https://aidn-production.up.railway.app`
-**Twilio Webhook:** Updated to Railway URL ✅
-**Test Call Result:** Call connects, TTS plays, but Stream causes "application error"
+**Twilio Webhook:** Configured to Railway URL ✅
+**Test Call Result:** Simple TwiML works, Stream TwiML fails
 
-### Root Cause Identified (Dec 26):
-- The TwilioAudioBridge on Railway is **not successfully connecting to the LiveKit room**
-- Voice agent waits 30 seconds for bridge, but it never appears
-- Most likely cause: Environment variables or LiveKit RTC library issue on Railway
-- See `docs/DEBUG_ANALYSIS.md` for full technical breakdown
+### Key Finding (Dec 26 Evening):
+- ✅ Basic `<Say>` TwiML works perfectly (user hears message)
+- ✅ WebSocket endpoint works (tested with Python client)
+- ✅ Railway supports WebSocket connections
+- ❌ `<Start><Stream>` TwiML causes "application error"
+- ❌ Twilio never connects to WebSocket (no logs show connection attempt)
+
+**Root Cause Under Investigation:** Twilio is not connecting to the WebSocket URL provided in the `<Stream>` tag, even though the WebSocket works when tested directly.
 
 ---
 
@@ -44,16 +48,12 @@ Debug TwilioAudioBridge not connecting to LiveKit room. Calls connect, TTS works
 | **Voice Agent Code** | 🟢 COMPLETE | AIDNVoiceAgent with casual persona |
 | **Script Knowledge Base** | 🟢 COMPLETE | Dynamic scripts by lead type |
 | **Twilio Call Initiation** | 🟢 COMPLETE | Calls go through, phone rings |
-| **Twilio TTS Audio** | 🟢 VERIFIED | Caller hears audio (confirmed multiple times) |
-| **LiveKit Worker** | 🟢 REGISTERED | Worker registered (AW_vuApLZzfseCn) |
-| **Twilio Webhook** | 🟢 COMPLETE | Returns TwiML correctly |
-| **Audio Bridge Code** | 🟢 COMPLETE | TwilioAudioBridge class implemented |
+| **Simple TwiML** | 🟢 VERIFIED | `<Say>` works - user hears message |
 | **Railway Deployment** | 🟢 DEPLOYED | App online at aidn-production.up.railway.app |
-| **Railway Service Exposure** | 🟢 COMPLETE | Public domain generated, port 8000 |
-| **LIVEKIT_WEBHOOK_BASE_URL** | 🟢 CONFIGURED | Set to Railway URL |
-| **Twilio Webhook** | 🟢 UPDATED | Points to Railway URL |
-| **Test Call Connection** | 🟢 WORKING | Calls go through Railway |
-| **AI Voice on Live Calls** | 🔴 ERROR | Audio stream returns "application error" |
+| **WebSocket on Railway** | 🟢 VERIFIED | Python client connects successfully |
+| **LiveKit Async Callback Fix** | 🟢 FIXED | Changed to sync wrappers with asyncio.create_task |
+| **Twilio Stream TwiML** | 🔴 ERROR | `<Start><Stream>` causes "application error" |
+| **Voice Agent Worker** | 🟡 LOCAL ONLY | Runs locally, not deployed to Railway |
 | **Dashboard Call Button** | 🟡 PARTIAL | Button exists, needs onClick handler |
 
 ---
@@ -65,17 +65,15 @@ Debug TwilioAudioBridge not connecting to LiveKit room. Calls connect, TTS works
 - ✅ FastAPI backend with all endpoints including WebSocket
 - ✅ PostgreSQL database with full schema
 - ✅ Twilio phone number configured (+18136380935)
-- ✅ LiveKit worker registered and active
 - ✅ All API keys configured (OpenAI, Deepgram, Twilio, LiveKit)
+- ✅ Railway deployment with public URL
 
-### **Voice Pipeline (Complete - needs deployment)**
-- ✅ Twilio calls connect to real phone numbers
-- ✅ TwiML is returned and executed correctly
-- ✅ Caller hears TTS audio (verified multiple times)
-- ✅ Voice agent joins LiveKit rooms automatically
-- ✅ AI generates casual, friendly speech with persona
-- ✅ OpenAI GPT-4o-mini powering responses
-- ✅ OpenAI TTS generating natural voice
+### **Verified Working (Dec 26 Testing)**
+- ✅ `/simple-webhook` returns basic TwiML - **USER HEARS MESSAGE**
+- ✅ `/ws-test` WebSocket endpoint - **PYTHON CLIENT CONNECTS**
+- ✅ `/twilio-audio-stream` WebSocket endpoint - **PYTHON CLIENT CONNECTS**
+- ✅ Voice agent worker registers with LiveKit Cloud
+- ✅ Voice agent accepts room requests and joins rooms
 
 ### **Business Logic (Complete)**
 - ✅ Lead upload from CSV with validation
@@ -85,119 +83,83 @@ Debug TwilioAudioBridge not connecting to LiveKit room. Calls connect, TTS works
 - ✅ Atomic booking (prevents double-booking)
 - ✅ Call logging to database
 
-### **Audio Bridge (Complete - needs deployment)**
-- ✅ WebSocket endpoint `/twilio-audio-stream` working
-- ✅ WebSocket works through ngrok (tested with Python client)
-- ✅ μ-law to PCM audio conversion (Python 3.14 compatible)
-- ✅ PCM to μ-law audio conversion
-- ✅ LiveKit room creation per call
-- ✅ TwilioAudioBridge class for bidirectional streaming
-- ✅ Improved outgoing audio handler (waits for bridge connection)
-
-### **Railway Deployment (In Progress)**
-- ✅ Railway account created
-- ✅ GitHub repository connected
-- ✅ Environment variables configured
-- ✅ Start command set (`python simple_api_server.py`)
-- ✅ Fixed local path references in requirements.txt and simple_api_server.py
-- ✅ App deployed and showing "Online"
-- 🟡 Need to expose service (generate public domain)
-- 🟡 Need to add LIVEKIT_WEBHOOK_BASE_URL with Railway URL
-- 🟡 Need to update Twilio webhook to Railway URL
-
 ---
 
-## 🚧 Immediate Next Steps
+## 🔴 Current Blocker: Twilio Stream Not Connecting
 
-### Priority 1: Debug Audio Bridge
-- [x] Expose Railway service (generate public domain) ✅
-- [x] Add LIVEKIT_WEBHOOK_BASE_URL variable with Railway URL ✅
-- [x] Update Twilio webhook to Railway URL ✅
-- [x] Test call - calls connect through Railway ✅
-- [ ] Debug "application error" in audio stream
-- [ ] Check Railway logs for error details
-- [ ] Fix audio bridge WebSocket issue
+### The Problem
+When TwiML contains `<Start><Stream>`, Twilio says "application error" instead of connecting to the WebSocket.
 
-### Priority 2: Test AI Voice (10 min)
-- [ ] Make test call
-- [ ] Verify AI voice agent speaks
-- [ ] Confirm bidirectional audio works
+### What We've Verified
+1. **WebSocket works:** Python client successfully connects to `wss://aidn-production.up.railway.app/twilio-audio-stream`
+2. **Simple TwiML works:** `<Say>` messages play correctly
+3. **TwiML is valid:** Manually tested webhook returns proper XML with correct content-type
+4. **Railway supports WebSocket:** Tested with `/ws-test` endpoint
 
-### Priority 3: Wire Up Call Button (30 min)
-- [ ] Add onClick handler to Call button in leads page
-- [ ] Connect to `/calls/initiate` endpoint
-- [ ] Show call status feedback
+### What's Not Working
+- Twilio HTTP logs show NO connection to `/twilio-audio-stream`
+- User hears "application error" immediately (no delay)
+- Voice agent logs show it's waiting for bridge that never appears
 
-### Priority 4: Test with Real Agents
-- [ ] Onboard first agent
-- [ ] Collect feedback
-- [ ] Iterate on issues
+### Possible Causes
+1. Twilio Media Streams might require specific account configuration
+2. The `<Stream>` URL format might need adjustment
+3. Railway might need specific headers for Twilio WebSocket
 
 ---
 
 ## 📝 Session History
 
-### December 26, 2025 Afternoon - Audio Bridge Debugging ⭐
+### December 26, 2025 Evening - Stream TwiML Debugging ⭐ (Current Session)
+**Worked By:** Claude (AI Assistant) with Tommy Roldan
+**Duration:** ~3 hours
+
+**Issues Fixed:**
+1. ✅ Fixed LiveKit async callback error in `twilio_audio_bridge.py`
+   - Changed `room.on("event", async_func)` to sync wrapper with `asyncio.create_task`
+2. ✅ Fixed voice agent `main.py` SDK compatibility
+   - `request_handler` now returns `None` and calls `await req.accept()`
+   - Replaced `ctx.wait_for_disconnect()` with room disconnect event listener
+3. ✅ Enabled `USE_STREAM_TWIML = True` for production
+4. ✅ Added lead info support to `/test-call` endpoint
+5. ✅ Added `/ws-test` WebSocket test endpoint
+6. ✅ Added `/simple-webhook` for TwiML testing
+
+**Key Discoveries:**
+- Simple `<Say>` TwiML works perfectly ✅
+- WebSocket endpoints work when tested with Python ✅
+- `<Start><Stream>` TwiML causes "application error" ❌
+- Twilio never attempts to connect to WebSocket (no logs)
+
+**Files Changed:**
+- `src/voice_agent/twilio_audio_bridge.py` - Async callback fix, TwiML variations
+- `src/voice_agent/main.py` - SDK compatibility fixes
+- `simple_api_server.py` - Test endpoints, lead info support
+
+**Next Steps:**
+- Test `/stream-test-webhook` to isolate Stream vs LiveKit issues
+- Check Twilio call logs for detailed error
+- Consider deploying voice agent to Railway as second service
+
+### December 26, 2025 Afternoon - Audio Bridge Debugging
 - Restarted voice agent worker - successfully registered with LiveKit Cloud
 - Restarted API server - running on localhost:8000
-- Updated Twilio webhook back to Railway (was temporarily on ngrok)
-- Tested simple TTS mode: ✅ WORKS (user hears "Hey there! This is the AI calling...")
-- Tested Stream mode: ❌ FAILS ("application error")
-- WebSocket test from Python: ✅ Successfully connects to Railway
-- Voice agent logs show: "⏳ Still waiting for audio bridge..." for 30 seconds
-- **Root Cause:** TwilioAudioBridge is NOT connecting to LiveKit room
-- Fixed `main.py` to wait up to 30s for audio bridge before starting session
-- Re-enabled `USE_STREAM_TWIML = True` for production
-- **Next:** Check Railway logs, verify LiveKit environment variables
+- Updated Twilio webhook back to Railway
+- Tested simple TTS mode: ✅ WORKS
+- Tested Stream mode: ❌ FAILS
 
-### December 25, 2025 Morning - Railway Testing ⭐
+### December 25, 2025 Morning - Railway Testing
 - Added missing LIVEKIT_API_KEY variable
-- Fixed DATABASE_URL variable (re-added after build error)
-- All 10 environment variables configured correctly
-- Updated Twilio webhook to: `https://aidn-production.up.railway.app/twilio-webhook`
+- All 10 environment variables configured
 - Test call successful - call connected through Railway!
 - **Issue Found:** Audio stream returns "application error"
-- **Next:** Debug audio bridge WebSocket, check Railway logs
 
-### December 24, 2025 Night - Railway Deployment ⭐
+### December 24, 2025 Night - Railway Deployment
 - Created Railway account and connected GitHub repository
-- Configured all environment variables in Railway
-- Fixed build errors:
-  - Removed local path reference from requirements.txt (`-e file:///Users/...`)
-  - Fixed hardcoded path in simple_api_server.py (now uses `os.path.dirname`)
-- Set custom start command: `python simple_api_server.py`
-- Successfully deployed - app showing "Online" status
-- Generated public domain: `aidn-production.up.railway.app` (port 8000)
-- Added `LIVEKIT_WEBHOOK_BASE_URL` environment variable
-
-### December 24, 2025 Evening - Debugging & Deployment Decision ⭐
-- Cleaned up old terminals and restarted services cleanly
-- Fixed `_handle_outgoing_audio` to wait for bridge connection (was exiting immediately)
-- Enabled Stream TwiML (`USE_STREAM_TWIML = True`)
-- Updated ngrok webhook URL in .env
-- Tested multiple call variations:
-  - Simple TTS: ✅ WORKS (caller hears message)
-  - Stream TwiML: ❌ "Application error" (ngrok limitation)
-- Confirmed WebSocket works through ngrok with Python client
-- **Root cause identified:** ngrok free tier doesn't work with Twilio Stream
-- **Decision:** Deploy to Railway to fix permanently
-- **Strategic update:** Real agents ready to use - prioritize deployment
-
-### December 24, 2025 - Voice Pipeline Verification ⭐
-- Fixed LiveKit API compatibility (RoomService → LiveKitAPI)
-- Fixed SSL certificate verification for Python 3.14
-- Fixed silero VAD plugin version mismatch
-- Started LiveKit voice agent worker successfully
-- Verified voice agent generates AI speech with casual persona
-- Tested end-to-end calls - verified Twilio TTS works (15s call)
-
-### December 25, 2025 - Audio Bridge Implementation
-- Implemented `TwilioAudioBridge` class for bidirectional streaming
-- Created `AudioConverter` with numpy (Python 3.14 compatible)
-- Added WebSocket endpoint `/twilio-audio-stream`
-- Updated webhook to return `<Stream>` TwiML
-- Updated voice agent main.py with room request handler
-- Fixed import issues with lazy loading in __init__.py
+- Configured all environment variables
+- Fixed build errors (local path references)
+- Successfully deployed - app showing "Online"
+- Generated public domain: `aidn-production.up.railway.app`
 
 ### December 24, 2025 - Infrastructure & UI Complete
 - Consolidated 3 separate AIDN implementations
@@ -212,10 +174,10 @@ Debug TwilioAudioBridge not connecting to LiveKit room. Calls connect, TTS works
 AIDN is production ready when:
 1. ✅ Dashboard can initiate calls → WORKING
 2. ✅ Phone rings and call connects → WORKING
-3. ✅ Caller hears audio → VERIFIED
-4. 🟡 AI voice agent speaks with casual persona → Railway deployed, needs URL config
-5. 🟡 AI listens and responds in real-time → Railway deployed, needs URL config
-6. 🟡 AI books appointments during call → Railway deployed, needs URL config
+3. ✅ Caller hears audio (simple TwiML) → VERIFIED
+4. 🔴 AI voice agent speaks with casual persona → Stream TwiML failing
+5. 🔴 AI listens and responds in real-time → Stream TwiML failing
+6. 🔴 AI books appointments during call → Stream TwiML failing
 7. ✅ Appointment saved to database → WORKING
 
-**Current Status: Complete Railway URL configuration to test AI voice**
+**Current Blocker: Twilio Stream TwiML not connecting to WebSocket**

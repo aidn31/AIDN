@@ -52,7 +52,7 @@ async def prewarm(proc: agents.JobProcess):
     logger.info("✅ AIDN voice agent prewarm complete")
 
 
-async def request_handler(req: JobRequest) -> agents.AutoAccept:
+async def request_handler(req: JobRequest) -> None:
     """
     Handle incoming job requests.
     
@@ -63,10 +63,10 @@ async def request_handler(req: JobRequest) -> agents.AutoAccept:
     
     if room_name.startswith("aidn-"):
         logger.info(f"📞 Accepting call room: {room_name}")
-        return agents.AutoAccept()
+        await req.accept()
     else:
         logger.info(f"🚫 Rejecting non-AIDN room: {room_name}")
-        raise agents.RequestCancelledError("Not an AIDN call room")
+        await req.reject()  # Reject non-AIDN rooms
 
 
 async def entrypoint(ctx: JobContext):
@@ -156,8 +156,17 @@ async def entrypoint(ctx: JobContext):
     # Keep the session alive until the room closes
     logger.info("🎙️ Voice agent is now active on the call")
     
-    # Wait for disconnect
-    await ctx.wait_for_disconnect()
+    # Wait for room to close by monitoring room events
+    # The session will stay alive as long as the room is active
+    room = ctx.room
+    disconnected = asyncio.Event()
+    
+    @room.on("disconnected")
+    def on_disconnect():
+        disconnected.set()
+    
+    # Wait until room disconnects
+    await disconnected.wait()
     
     logger.info(f"📴 Call ended in room: {room_name}")
 
