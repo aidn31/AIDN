@@ -519,21 +519,18 @@ def generate_stream_twiml(
     Generate TwiML response that connects call audio to WebSocket stream.
     
     This is the key to enabling real-time AI voice on phone calls.
-    Uses <Start><Stream> for background streaming while keeping call active.
+    Uses <Connect><Stream> for bidirectional streaming (recommended for AI agents).
     """
     # Build the stream URL with query parameters
     stream_url = f"{websocket_url}?room={room_name}&lead_id={lead_id}&agent_id={agent_id}"
     
-    # Use <Start><Stream> to begin streaming in background
-    # Then <Pause> to keep the call alive while AI processes
-    # This approach is more compatible with various hosting setups
+    # Use <Connect><Stream> for bidirectional streaming
+    # This keeps the call connected and allows real-time AI conversation
     twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say voice="Polly.Matthew">Hey, please hold on one moment while I connect you.</Say>
-    <Start>
-        <Stream url="{stream_url}" track="both_tracks"/>
-    </Start>
-    <Pause length="60"/>
+    <Connect>
+        <Stream url="{stream_url}"/>
+    </Connect>
 </Response>"""
     
     return twiml
