@@ -519,7 +519,9 @@ async def test_call(request: Request):
             "simple-webhook": "/simple-webhook",
             "echo-stream-webhook": "/echo-stream-webhook",
             "minimal-stream-webhook": "/minimal-stream-webhook",
-            "stream-test-webhook": "/stream-test-webhook"
+            "stream-test-webhook": "/stream-test-webhook",
+            "stream-with-params-webhook": "/stream-with-params-webhook",
+            "stream-both-tracks-webhook": "/stream-both-tracks-webhook"
         }
         webhook_path = webhook_endpoints.get(webhook_type, "/twilio-webhook")
         
