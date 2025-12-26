@@ -28,7 +28,7 @@ sys.path.insert(0, '/Users/thomasroldan/Documents/GitHub/AIDN')
 from src.voice_agent.twilio_audio_bridge import (
     TwilioAudioBridge,
     create_livekit_room_for_call,
-    generate_stream_twiml
+    generate_stream_twiml,
 )
 
 app = FastAPI(
