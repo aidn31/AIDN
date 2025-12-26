@@ -59,9 +59,21 @@ async def root():
             "webhook": "/twilio-webhook",
             "audio_stream": "/twilio-audio-stream",
             "test_call": "/test-call",
-            "ws_test": "/ws-test"
+            "ws_test": "/ws-test",
+            "simple_webhook": "/simple-webhook"
         }
     }
+
+
+@app.post("/simple-webhook")
+async def simple_webhook(request: Request):
+    """Ultra-simple webhook for testing - just returns basic TwiML."""
+    print("📞 Simple webhook called!")
+    twiml = """<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="Polly.Matthew">Hello! This is a simple test. The webhook is working correctly. Goodbye!</Say>
+</Response>"""
+    return Response(content=twiml, media_type="text/xml")
 
 
 @app.websocket("/ws-test")
