@@ -158,6 +158,65 @@ async def echo_stream_webhook(request: Request):
     return Response(content=twiml, media_type="text/xml")
 
 
+@app.post("/stream-with-params-webhook")
+async def stream_with_params_webhook(request: Request):
+    """Test Stream with query params but NO track=both_tracks."""
+    print("📞 Stream with params webhook called!")
+    
+    # Get room info from query params
+    room_name = request.query_params.get("room", "test-room")
+    lead_id = request.query_params.get("lead_id", "test-lead")
+    agent_id = request.query_params.get("agent_id", "test-agent")
+    
+    webhook_base_url = os.getenv("LIVEKIT_WEBHOOK_BASE_URL", "https://aidn-production.up.railway.app")
+    ws_url = webhook_base_url.replace("https://", "wss://").replace("http://", "ws://")
+    
+    # Include query params but NO track attribute (uses default inbound_track)
+    stream_url = f"{ws_url}/twilio-audio-stream?room={room_name}&lead_id={lead_id}&agent_id={agent_id}"
+    
+    print(f"🔗 Stream URL (with params, no track attr): {stream_url}")
+    
+    twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="Polly.Matthew">Testing stream with query parameters.</Say>
+    <Start>
+        <Stream url="{stream_url}"/>
+    </Start>
+    <Pause length="60"/>
+    <Say voice="Polly.Matthew">Stream test complete.</Say>
+</Response>"""
+    
+    print(f"📄 TwiML: {twiml}")
+    return Response(content=twiml, media_type="text/xml")
+
+
+@app.post("/stream-both-tracks-webhook")
+async def stream_both_tracks_webhook(request: Request):
+    """Test Stream with track=both_tracks but NO query params."""
+    print("📞 Stream both tracks webhook called!")
+    
+    webhook_base_url = os.getenv("LIVEKIT_WEBHOOK_BASE_URL", "https://aidn-production.up.railway.app")
+    ws_url = webhook_base_url.replace("https://", "wss://").replace("http://", "ws://")
+    
+    # No query params but HAS track="both_tracks"
+    stream_url = f"{ws_url}/twilio-audio-stream"
+    
+    print(f"🔗 Stream URL (no params, with both_tracks): {stream_url}")
+    
+    twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="Polly.Matthew">Testing stream with both tracks attribute.</Say>
+    <Start>
+        <Stream url="{stream_url}" track="both_tracks"/>
+    </Start>
+    <Pause length="60"/>
+    <Say voice="Polly.Matthew">Stream test complete.</Say>
+</Response>"""
+    
+    print(f"📄 TwiML: {twiml}")
+    return Response(content=twiml, media_type="text/xml")
+
+
 @app.websocket("/ws-test")
 async def websocket_test(websocket: WebSocket):
     """Simple WebSocket test endpoint to verify WS works on Railway."""
