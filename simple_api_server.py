@@ -58,9 +58,24 @@ async def root():
         "endpoints": {
             "webhook": "/twilio-webhook",
             "audio_stream": "/twilio-audio-stream",
-            "test_call": "/test-call"
+            "test_call": "/test-call",
+            "ws_test": "/ws-test"
         }
     }
+
+
+@app.websocket("/ws-test")
+async def websocket_test(websocket: WebSocket):
+    """Simple WebSocket test endpoint to verify WS works on Railway."""
+    await websocket.accept()
+    print("✅ WebSocket test connection accepted!")
+    try:
+        while True:
+            data = await websocket.receive_text()
+            print(f"📥 Received: {data}")
+            await websocket.send_text(f"Echo: {data}")
+    except WebSocketDisconnect:
+        print("🔌 WebSocket test disconnected")
 
 
 @app.post("/twilio-webhook")
