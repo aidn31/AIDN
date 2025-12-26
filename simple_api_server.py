@@ -7,6 +7,7 @@ API server that connects Twilio phone calls to LiveKit voice agent via WebSocket
 """
 
 import asyncio
+import json
 import os
 import sys
 from datetime import datetime
@@ -72,6 +73,10 @@ async def root():
             "track_outbound": "/track-outbound-webhook",
             "track_default": "/track-default-webhook",
             "track_comparison": "/track-comparison-webhook"
+        },
+        "phase2_tests": {
+            "stream_no_livekit": "/stream-no-livekit-webhook",
+            "stream_delayed_livekit": "/stream-delayed-livekit-webhook"
         }
     }
 
@@ -355,6 +360,81 @@ async def track_comparison_webhook(request: Request):
     return Response(content=twiml, media_type="text/xml")
 
 
+# === PHASE 2: LIVEKIT INTEGRATION SIMPLIFICATION ===
+
+@app.post("/stream-no-livekit-webhook")
+async def stream_no_livekit_webhook(request: Request):
+    """Test Stream connection WITHOUT any LiveKit integration - pure WebSocket test."""
+    print("📞 STREAM NO-LIVEKIT webhook called!")
+
+    # Get query parameters (for logging, but won't use for room creation)
+    room_name = request.query_params.get("room", f"aidn-test-{datetime.now().strftime('%H%M%S')}")
+    lead_id = request.query_params.get("lead_id", str(uuid4()))
+    agent_id = request.query_params.get("agent_id", str(uuid4()))
+
+    print(f"🏠 Room (for WebSocket only): {room_name}")
+    print(f"👤 Lead ID: {lead_id}")
+    print(f"🤖 Agent ID: {agent_id}")
+
+    # Generate WebSocket URL with room info (but no LiveKit room will be created)
+    webhook_base_url = os.getenv("LIVEKIT_WEBHOOK_BASE_URL", "https://aidn-production.up.railway.app")
+    ws_url = webhook_base_url.replace("https://", "wss://").replace("http://", "ws://")
+    stream_url = f"{ws_url}/twilio-audio-stream-simple?room={room_name}&lead_id={lead_id}&agent_id={agent_id}"
+
+    print(f"🔗 Stream URL (no LiveKit): {stream_url}")
+
+    twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="Polly.Matthew">Testing stream connection without LiveKit integration.</Say>
+    <Start>
+        <Stream url="{stream_url}" track="both_tracks"/>
+    </Start>
+    <Pause length="30"/>
+    <Say voice="Polly.Matthew">Stream test without LiveKit complete.</Say>
+</Response>"""
+
+    print(f"📄 No-LiveKit TwiML: {twiml}")
+    return Response(content=twiml, media_type="text/xml")
+
+
+@app.post("/stream-delayed-livekit-webhook")
+async def stream_delayed_livekit_webhook(request: Request):
+    """Test Stream connection FIRST, then create LiveKit room after stream establishes."""
+    print("📞 STREAM DELAYED-LIVEKIT webhook called!")
+
+    # Get query parameters
+    room_name = request.query_params.get("room", f"aidn-test-{datetime.now().strftime('%H%M%S')}")
+    lead_id = request.query_params.get("lead_id", str(uuid4()))
+    agent_id = request.query_params.get("agent_id", str(uuid4()))
+
+    print(f"🏠 Room: {room_name}")
+    print(f"👤 Lead ID: {lead_id}")
+    print(f"🤖 Agent ID: {agent_id}")
+
+    # DON'T create LiveKit room yet - let the stream establish first
+    # The room creation will happen in the WebSocket handler after "start" event
+
+    # Generate WebSocket URL with room info
+    webhook_base_url = os.getenv("LIVEKIT_WEBHOOK_BASE_URL", "https://aidn-production.up.railway.app")
+    ws_url = webhook_base_url.replace("https://", "wss://").replace("http://", "ws://")
+    stream_url = f"{ws_url}/twilio-audio-stream-delayed?room={room_name}&lead_id={lead_id}&agent_id={agent_id}"
+
+    print(f"🔗 Stream URL (delayed LiveKit): {stream_url}")
+
+    twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="Polly.Matthew">Testing stream first, then LiveKit room creation.</Say>
+    <Start>
+        <Stream url="{stream_url}" track="both_tracks"/>
+    </Start>
+    <Pause length="60"/>
+    <Say voice="Polly.Matthew">Delayed LiveKit test complete.</Say>
+</Response>"""
+
+    print(f"📄 Delayed-LiveKit TwiML: {twiml}")
+    return Response(content=twiml, media_type="text/xml")
+
+
 @app.websocket("/ws-test")
 async def websocket_test(websocket: WebSocket):
     """Simple WebSocket test endpoint to verify WS works on Railway."""
@@ -472,11 +552,166 @@ async def twilio_webhook(request: Request):
         return Response(content=error_twiml, media_type="text/xml")
 
 
+@app.websocket("/twilio-audio-stream-simple")
+async def twilio_audio_stream_simple(websocket: WebSocket):
+    """
+    SIMPLIFIED WebSocket endpoint - NO LiveKit integration, just log audio events.
+
+    This tests pure Twilio Stream functionality without any LiveKit complexity.
+    """
+    await websocket.accept()
+    print("✅ Simple audio stream WebSocket connected!")
+
+    try:
+        while True:
+            # Receive message from Twilio
+            message = await websocket.receive_text()
+            data = json.loads(message)
+            event = data.get("event", "unknown")
+
+            if event == "connected":
+                print("🔌 Twilio WebSocket connected")
+
+            elif event == "start":
+                start_info = data.get("start", {})
+                stream_sid = start_info.get("streamSid")
+                call_sid = start_info.get("callSid")
+                print(f"🎬 Stream started: {stream_sid}, call: {call_sid}")
+
+            elif event == "media":
+                media = data.get("media", {})
+                sequence = media.get("sequenceNumber", 0)
+                if sequence % 100 == 0:  # Log every 100th media packet
+                    print(f"🎵 Media packet #{sequence}")
+
+            elif event == "stop":
+                print("🛑 Stream stopped")
+                break
+
+            elif event == "mark":
+                mark_name = data.get("mark", {}).get("name", "")
+                print(f"📍 Mark: {mark_name}")
+
+            else:
+                print(f"❓ Unknown event: {event}")
+
+    except WebSocketDisconnect:
+        print("🔌 Simple audio stream disconnected")
+    except Exception as e:
+        print(f"❌ Simple audio stream error: {e}")
+        import traceback
+        traceback.print_exc()
+
+
+@app.websocket("/twilio-audio-stream-delayed")
+async def twilio_audio_stream_delayed(websocket: WebSocket):
+    """
+    WebSocket endpoint that creates LiveKit room AFTER stream starts (not during webhook).
+
+    This tests delayed LiveKit integration to avoid webhook timeouts.
+    """
+    await websocket.accept()
+    print("✅ Delayed LiveKit audio stream WebSocket connected!")
+
+    # Extract room info from query params
+    query_params = dict(websocket.query_params)
+    room_name = query_params.get("room", "unknown")
+    lead_id = query_params.get("lead_id", "unknown")
+    agent_id = query_params.get("agent_id", "unknown")
+
+    print(f"🏠 Room for delayed creation: {room_name}")
+    print(f"👤 Lead: {lead_id}")
+    print(f"🤖 Agent: {agent_id}")
+
+    bridge = None
+
+    try:
+        while True:
+            # Receive message from Twilio
+            message = await websocket.receive_text()
+            data = json.loads(message)
+            event = data.get("event", "unknown")
+
+            if event == "connected":
+                print("🔌 Delayed LiveKit WebSocket connected")
+
+            elif event == "start":
+                start_info = data.get("start", {})
+                stream_sid = start_info.get("streamSid")
+                call_sid = start_info.get("callSid")
+                print(f"🎬 Stream started: {stream_sid}, call: {call_sid}")
+
+                # NOW create the LiveKit room and bridge (after stream is established)
+                print("⏰ Creating LiveKit room after stream start...")
+
+                room_created = await create_livekit_room_for_call(
+                    room_name=room_name,
+                    lead_id=lead_id,
+                    agent_id=agent_id
+                )
+
+                if room_created:
+                    print("✅ LiveKit room created successfully")
+
+                    # Create the bridge
+                    bridge = TwilioAudioBridge(
+                        room_name=room_name,
+                        lead_id=lead_id,
+                        agent_id=agent_id
+                    )
+
+                    # Connect to LiveKit
+                    if await bridge.connect_to_livekit():
+                        print("✅ TwilioAudioBridge connected to LiveKit")
+                        active_bridges[room_name] = bridge
+                    else:
+                        print("❌ Failed to connect TwilioAudioBridge to LiveKit")
+                        bridge = None
+                else:
+                    print("❌ Failed to create LiveKit room")
+
+            elif event == "media" and bridge:
+                # Process media through bridge if it exists
+                response = await bridge.process_twilio_message(message)
+                if response:
+                    await websocket.send_text(response)
+
+            elif event == "stop":
+                print("🛑 Delayed LiveKit stream stopped")
+                if bridge:
+                    await bridge.disconnect()
+                    if room_name in active_bridges:
+                        del active_bridges[room_name]
+                break
+
+            elif event == "mark":
+                mark_name = data.get("mark", {}).get("name", "")
+                print(f"📍 Mark: {mark_name}")
+
+            else:
+                print(f"❓ Unknown event: {event}")
+
+    except WebSocketDisconnect:
+        print("🔌 Delayed LiveKit stream disconnected")
+        if bridge:
+            await bridge.disconnect()
+            if room_name in active_bridges:
+                del active_bridges[room_name]
+    except Exception as e:
+        print(f"❌ Delayed LiveKit stream error: {e}")
+        import traceback
+        traceback.print_exc()
+        if bridge:
+            await bridge.disconnect()
+            if room_name in active_bridges:
+                del active_bridges[room_name]
+
+
 @app.websocket("/twilio-audio-stream")
 async def twilio_audio_stream(websocket: WebSocket):
     """
     WebSocket endpoint for Twilio audio streaming.
-    
+
     This is where the magic happens:
     1. Twilio connects via WebSocket and streams audio
     2. We bridge the audio to/from a LiveKit room
@@ -664,7 +899,10 @@ async def test_call(request: Request):
             "track-inbound-webhook": "/track-inbound-webhook",
             "track-outbound-webhook": "/track-outbound-webhook",
             "track-default-webhook": "/track-default-webhook",
-            "track-comparison-webhook": "/track-comparison-webhook"
+            "track-comparison-webhook": "/track-comparison-webhook",
+            # Phase 2: LiveKit integration tests
+            "stream-no-livekit-webhook": "/stream-no-livekit-webhook",
+            "stream-delayed-livekit-webhook": "/stream-delayed-livekit-webhook"
         }
         webhook_path = webhook_endpoints.get(webhook_type, "/twilio-webhook")
         
