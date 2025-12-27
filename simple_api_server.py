@@ -529,8 +529,8 @@ async def twilio_webhook(request: Request):
         else:
             ws_base_url = f"wss://{webhook_base_url}"
 
-        # Use delayed WebSocket endpoint - let generate_stream_twiml add query params
-        websocket_url = f"{ws_base_url}/twilio-audio-stream-delayed"
+        # Use main WebSocket endpoint - immediate room creation
+        websocket_url = f"{ws_base_url}/twilio-audio-stream"
         
         print(f"🔊 WebSocket URL: {websocket_url}")
         
