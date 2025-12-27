@@ -522,7 +522,8 @@ def generate_stream_twiml(
     Uses <Start><Stream> with a long pause to keep call alive.
     """
     # Build the stream URL with query parameters
-    stream_url = f"{websocket_url}?room={room_name}&lead_id={lead_id}&agent_id={agent_id}"
+    # CRITICAL: Escape & as &amp; in TwiML URLs to avoid XML parsing errors (Twilio error 12100)
+    stream_url = f"{websocket_url}?room={room_name}&amp;lead_id={lead_id}&amp;agent_id={agent_id}"
     
     # Use <Start><Stream> to begin streaming in background
     # <Say> first to confirm TwiML is working, then start stream
