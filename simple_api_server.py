@@ -756,40 +756,63 @@ async def twilio_audio_stream(websocket: WebSocket):
     bridge = None
 
     # Wait for the first message from Twilio which should be "connected" or "start"
+    stream_sid = None
+    start_message_for_bridge = None
+
     try:
         # Listen for the start event to extract parameters
         first_message = await websocket.receive_text()
         data = json.loads(first_message)
+        print(f"📥 First Twilio message: {json.dumps(data, indent=2)}")
 
         if data.get("event") == "connected":
             print("📡 Twilio connected event received")
             # Wait for the start event which has the parameters
             start_message = await websocket.receive_text()
             start_data = json.loads(start_message)
+            print(f"📥 Twilio start message: {json.dumps(start_data, indent=2)}")
 
             if start_data.get("event") == "start":
                 # Extract parameters from customParameters in start event
-                custom_params = start_data.get("start", {}).get("customParameters", {})
+                start_info = start_data.get("start", {})
+                custom_params = start_info.get("customParameters", {})
+                stream_sid = start_info.get("streamSid")  # CRITICAL: Extract stream_sid
+                call_sid = start_info.get("callSid")
+
                 room_name = custom_params.get("room", f"aidn-call-{uuid4()}")
                 lead_id = custom_params.get("lead_id", str(uuid4()))
                 agent_id = custom_params.get("agent_id", str(uuid4()))
 
-                print(f"✅ Extracted parameters from Twilio start event:")
+                print(f"✅ Extracted from Twilio start event:")
                 print(f"🏠 Room: {room_name}")
                 print(f"👤 Lead: {lead_id}")
                 print(f"👔 Agent: {agent_id}")
+                print(f"🎬 Stream SID: {stream_sid}")
+                print(f"📞 Call SID: {call_sid}")
+
+                # Store the start message to pass to bridge later
+                start_message_for_bridge = start_message
 
         elif data.get("event") == "start":
             # Sometimes start comes first
-            custom_params = data.get("start", {}).get("customParameters", {})
+            start_info = data.get("start", {})
+            custom_params = start_info.get("customParameters", {})
+            stream_sid = start_info.get("streamSid")  # CRITICAL: Extract stream_sid
+            call_sid = start_info.get("callSid")
+
             room_name = custom_params.get("room", f"aidn-call-{uuid4()}")
             lead_id = custom_params.get("lead_id", str(uuid4()))
             agent_id = custom_params.get("agent_id", str(uuid4()))
 
-            print(f"✅ Extracted parameters from Twilio start event (direct):")
+            print(f"✅ Extracted from Twilio start event (direct):")
             print(f"🏠 Room: {room_name}")
             print(f"👤 Lead: {lead_id}")
             print(f"👔 Agent: {agent_id}")
+            print(f"🎬 Stream SID: {stream_sid}")
+            print(f"📞 Call SID: {call_sid}")
+
+            # Store the start message to pass to bridge later
+            start_message_for_bridge = first_message
 
     except Exception as e:
         print(f"⚠️ Error extracting parameters from Twilio events: {e}")
@@ -806,6 +829,19 @@ async def twilio_audio_stream(websocket: WebSocket):
         lead_id=lead_id,
         agent_id=agent_id
     )
+
+    # CRITICAL: Set the stream_sid we extracted from start message
+    if stream_sid:
+        bridge.stream_sid = stream_sid
+        print(f"✅ Set bridge stream_sid: {stream_sid}")
+    else:
+        print("❌ Warning: No stream_sid extracted from Twilio start event")
+
+    # CRITICAL: Process the start message through the bridge to trigger LiveKit connection
+    if start_message_for_bridge:
+        print("🔄 Processing start message through TwilioAudioBridge...")
+        await bridge.process_twilio_message(start_message_for_bridge)
+        print("✅ Start message processed by bridge")
 
     # Connect to LiveKit (CRITICAL: this was missing!)
     if await bridge.connect_to_livekit():
