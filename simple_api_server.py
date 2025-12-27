@@ -762,7 +762,13 @@ async def twilio_audio_stream(websocket: WebSocket):
         lead_id=lead_id,
         agent_id=agent_id
     )
-    
+
+    # Connect to LiveKit (CRITICAL: this was missing!)
+    if await bridge.connect_to_livekit():
+        print("✅ TwilioAudioBridge connected to LiveKit")
+    else:
+        print("❌ Failed to connect TwilioAudioBridge to LiveKit")
+
     # Store bridge for potential external access
     active_bridges[room_name] = bridge
     
