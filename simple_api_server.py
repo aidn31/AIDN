@@ -7,6 +7,7 @@ API server that connects Twilio phone calls to LiveKit voice agent via WebSocket
 """
 
 import asyncio
+import html
 import json
 import os
 import sys
@@ -24,6 +25,35 @@ load_dotenv()
 
 # Add src to path
 sys.path.insert(0, '/Users/thomasroldan/Documents/GitHub/AIDN')
+
+def parse_websocket_query_params(websocket: WebSocket) -> dict:
+    """
+    Parse WebSocket query parameters with support for XML-escaped entities.
+
+    Twilio sends URLs with &amp; instead of & due to TwiML XML escaping,
+    so we need to handle both formats properly.
+    """
+    # Get raw query string
+    query_string = str(websocket.url.query) if websocket.url.query else ""
+
+    print(f"🔍 Raw query string: {query_string}")
+
+    # Handle both regular & and XML-escaped &amp; separators
+    if "&amp;" in query_string:
+        # XML-escaped format from TwiML - decode entities first
+        query_string = html.unescape(query_string)
+        print(f"🔧 After HTML unescape: {query_string}")
+
+    # Parse parameters manually to be more robust
+    params = {}
+    if query_string:
+        for param in query_string.split("&"):
+            if "=" in param:
+                key, value = param.split("=", 1)
+                params[key] = value
+
+    print(f"✅ Parsed params: {params}")
+    return params
 
 from src.voice_agent.twilio_audio_bridge import (
     TwilioAudioBridge,
@@ -555,6 +585,11 @@ async def twilio_audio_stream_simple(websocket: WebSocket):
     await websocket.accept()
     print("✅ Simple audio stream WebSocket connected!")
 
+    # Extract room info from query params with XML entity support (for debugging)
+    params = parse_websocket_query_params(websocket)
+    room_name = params.get("room", "unknown")
+    print(f"🏠 Simple stream for room: {room_name}")
+
     try:
         while True:
             # Receive message from Twilio
@@ -606,11 +641,11 @@ async def twilio_audio_stream_delayed(websocket: WebSocket):
     await websocket.accept()
     print("✅ Delayed LiveKit audio stream WebSocket connected!")
 
-    # Extract room info from query params
-    query_params = dict(websocket.query_params)
-    room_name = query_params.get("room", "unknown")
-    lead_id = query_params.get("lead_id", "unknown")
-    agent_id = query_params.get("agent_id", "unknown")
+    # Extract room info from query params with XML entity support
+    params = parse_websocket_query_params(websocket)
+    room_name = params.get("room", "unknown")
+    lead_id = params.get("lead_id", "unknown")
+    agent_id = params.get("agent_id", "unknown")
 
     print(f"🏠 Room for delayed creation: {room_name}")
     print(f"👤 Lead: {lead_id}")
@@ -711,12 +746,13 @@ async def twilio_audio_stream(websocket: WebSocket):
     3. The AIDN voice agent in the room handles the conversation
     """
     await websocket.accept()
-    
-    # Get parameters from query string
-    room_name = websocket.query_params.get("room", f"aidn-call-{uuid4()}")
-    lead_id = websocket.query_params.get("lead_id", str(uuid4()))
-    agent_id = websocket.query_params.get("agent_id", str(uuid4()))
-    
+
+    # Get parameters from query string with XML entity support
+    params = parse_websocket_query_params(websocket)
+    room_name = params.get("room", f"aidn-call-{uuid4()}")
+    lead_id = params.get("lead_id", str(uuid4()))
+    agent_id = params.get("agent_id", str(uuid4()))
+
     print(f"🎤 WebSocket connected for room: {room_name}")
     print(f"👤 Lead: {lead_id}, Agent: {agent_id}")
     
