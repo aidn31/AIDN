@@ -23,7 +23,7 @@ Review the changes made this session and commit them to git with an appropriate 
 
 **Examples of good commit messages:**
 - `"Voice agent now connects to Twilio"`
-- `"Fixed appointment booking bug"`
+- `"Fixed appointment booking bug"`Rea
 - `"Added lead upload feature"`
 - `"Updated system prompt for better objections"`
 

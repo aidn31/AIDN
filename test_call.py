@@ -67,8 +67,9 @@ async def test_phone_call():
 
         twilio_client = Client(account_sid, auth_token)
 
-        # Create a simple test call (we'll configure the webhook later)
-        webhook_url = "https://webhook.site/unique-id"  # Temporary webhook for testing
+        # Use the real webhook URL that connects to your voice agent
+        webhook_base_url = os.getenv("LIVEKIT_WEBHOOK_BASE_URL", "https://aidn-production.up.railway.app")
+        webhook_url = f"{webhook_base_url}/twilio-webhook"
 
         print(f"🔄 Initiating call to +19086197628...")
 
