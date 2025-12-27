@@ -317,25 +317,40 @@ class TwilioAudioBridge:
     
     async def _process_agent_audio(self, audio_stream: rtc.AudioStream):
         """Process audio from the voice agent and queue for Twilio."""
+        logger.info("🎵 Starting to process voice agent audio stream")
+        frame_count = 0
+
         try:
             async for frame_event in audio_stream:
                 if not self.is_connected:
+                    logger.warning("❌ Audio bridge disconnected, stopping audio processing")
                     break
-                
+
                 frame = frame_event.frame
-                
+                frame_count += 1
+
+                # Log first few frames and then every 100th frame
+                if frame_count <= 3 or frame_count % 100 == 0:
+                    logger.info(f"🎤 Received audio frame #{frame_count}: {len(frame.data)} samples, {frame.sample_rate}Hz")
+
                 # Convert PCM to μ-law for Twilio
                 pcm_data = frame.data.tobytes()
                 mulaw_data = self.converter.pcm16_to_mulaw(
-                    pcm_data, 
+                    pcm_data,
                     source_rate=frame.sample_rate
                 )
-                
+
                 # Queue for sending to Twilio
                 await self.outgoing_audio_queue.put(mulaw_data)
-                
+
+                # Log first few successful queues
+                if frame_count <= 3:
+                    logger.info(f"✅ Queued audio frame #{frame_count} for Twilio ({len(mulaw_data)} bytes μ-law)")
+
         except Exception as e:
-            logger.error(f"Error processing agent audio: {e}")
+            logger.error(f"❌ Error processing agent audio after {frame_count} frames: {e}")
+
+        logger.info(f"🎵 Finished processing voice agent audio stream (processed {frame_count} frames total)")
     
     async def _on_disconnected(self):
         """Handle LiveKit room disconnection."""
@@ -419,7 +434,7 @@ class TwilioAudioBridge:
     async def get_outgoing_audio(self) -> Optional[str]:
         """
         Get the next audio chunk to send to Twilio.
-        
+
         Returns base64-encoded μ-law audio wrapped in Twilio media message format.
         """
         try:
@@ -428,21 +443,40 @@ class TwilioAudioBridge:
                 self.outgoing_audio_queue.get(),
                 timeout=0.05
             )
-            
+
             if mulaw_data and self.stream_sid:
-                return json.dumps({
+                # Log every 50th audio message to avoid spam
+                if not hasattr(self, '_audio_send_count'):
+                    self._audio_send_count = 0
+                self._audio_send_count += 1
+
+                if self._audio_send_count <= 3 or self._audio_send_count % 50 == 0:
+                    logger.info(f"📤 Sending audio message #{self._audio_send_count} to Twilio ({len(mulaw_data)} bytes μ-law)")
+
+                message = json.dumps({
                     "event": "media",
                     "streamSid": self.stream_sid,
                     "media": {
                         "payload": base64.b64encode(mulaw_data).decode("ascii")
                     }
                 })
-            
+
+                if self._audio_send_count <= 3:
+                    logger.info(f"✅ Generated Twilio media message #{self._audio_send_count} ({len(message)} chars)")
+
+                return message
+            else:
+                if not mulaw_data:
+                    logger.debug("🔇 No audio data available")
+                if not self.stream_sid:
+                    logger.warning("❌ No stream_sid available for sending audio")
+
         except asyncio.TimeoutError:
+            # This is expected when no audio is ready - don't log it
             pass
         except Exception as e:
-            logger.error(f"Error getting outgoing audio: {e}")
-        
+            logger.error(f"❌ Error getting outgoing audio: {e}")
+
         return None
     
     async def disconnect(self):
@@ -521,17 +555,17 @@ def generate_stream_twiml(
     This is the key to enabling real-time AI voice on phone calls.
     Uses <Start><Stream> with a long pause to keep call alive.
     """
-    # Build the stream URL with query parameters
-    # CRITICAL: Escape & as &amp; in TwiML URLs to avoid XML parsing errors (Twilio error 12100)
-    stream_url = f"{websocket_url}?room={room_name}&amp;lead_id={lead_id}&amp;agent_id={agent_id}"
-    
-    # Use <Start><Stream> to begin streaming in background
-    # <Say> first to confirm TwiML is working, then start stream
+    # Use Twilio's official <Parameter> elements to pass data to WebSocket
+    # This is the correct way to pass custom data to Stream WebSockets
     twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Say voice="Polly.Matthew">Please hold while I connect you to our agent.</Say>
     <Start>
-        <Stream url="{stream_url}" track="both_tracks"/>
+        <Stream url="{websocket_url}" track="both_tracks">
+            <Parameter name="room" value="{room_name}"/>
+            <Parameter name="lead_id" value="{lead_id}"/>
+            <Parameter name="agent_id" value="{agent_id}"/>
+        </Stream>
     </Start>
     <Pause length="120"/>
     <Say voice="Polly.Matthew">Thank you for your time. Goodbye.</Say>

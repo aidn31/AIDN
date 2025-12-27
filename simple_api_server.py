@@ -747,16 +747,60 @@ async def twilio_audio_stream(websocket: WebSocket):
     """
     await websocket.accept()
 
-    # Get parameters from query string with XML entity support
-    params = parse_websocket_query_params(websocket)
-    room_name = params.get("room", f"aidn-call-{uuid4()}")
-    lead_id = params.get("lead_id", str(uuid4()))
-    agent_id = params.get("agent_id", str(uuid4()))
+    print("🎤 WebSocket connected - waiting for Twilio start event with parameters")
 
-    print(f"🎤 WebSocket connected for room: {room_name}")
-    print(f"👤 Lead: {lead_id}, Agent: {agent_id}")
-    
-    # Create audio bridge
+    # Initialize with defaults - we'll get the real values from Twilio's start event
+    room_name = f"aidn-call-{uuid4()}"
+    lead_id = str(uuid4())
+    agent_id = str(uuid4())
+    bridge = None
+
+    # Wait for the first message from Twilio which should be "connected" or "start"
+    try:
+        # Listen for the start event to extract parameters
+        first_message = await websocket.receive_text()
+        data = json.loads(first_message)
+
+        if data.get("event") == "connected":
+            print("📡 Twilio connected event received")
+            # Wait for the start event which has the parameters
+            start_message = await websocket.receive_text()
+            start_data = json.loads(start_message)
+
+            if start_data.get("event") == "start":
+                # Extract parameters from customParameters in start event
+                custom_params = start_data.get("start", {}).get("customParameters", {})
+                room_name = custom_params.get("room", f"aidn-call-{uuid4()}")
+                lead_id = custom_params.get("lead_id", str(uuid4()))
+                agent_id = custom_params.get("agent_id", str(uuid4()))
+
+                print(f"✅ Extracted parameters from Twilio start event:")
+                print(f"🏠 Room: {room_name}")
+                print(f"👤 Lead: {lead_id}")
+                print(f"👔 Agent: {agent_id}")
+
+        elif data.get("event") == "start":
+            # Sometimes start comes first
+            custom_params = data.get("start", {}).get("customParameters", {})
+            room_name = custom_params.get("room", f"aidn-call-{uuid4()}")
+            lead_id = custom_params.get("lead_id", str(uuid4()))
+            agent_id = custom_params.get("agent_id", str(uuid4()))
+
+            print(f"✅ Extracted parameters from Twilio start event (direct):")
+            print(f"🏠 Room: {room_name}")
+            print(f"👤 Lead: {lead_id}")
+            print(f"👔 Agent: {agent_id}")
+
+    except Exception as e:
+        print(f"⚠️ Error extracting parameters from Twilio events: {e}")
+        print("🔄 Using fallback parameter extraction")
+        # Fall back to query params if event parsing fails
+        params = parse_websocket_query_params(websocket)
+        room_name = params.get("room", f"aidn-call-{uuid4()}")
+        lead_id = params.get("lead_id", str(uuid4()))
+        agent_id = params.get("agent_id", str(uuid4()))
+
+    # Create audio bridge with extracted parameters
     bridge = TwilioAudioBridge(
         room_name=room_name,
         lead_id=lead_id,
@@ -832,45 +876,78 @@ async def _handle_incoming_audio(websocket: WebSocket, bridge: TwilioAudioBridge
 
 async def _handle_outgoing_audio(websocket: WebSocket, bridge: TwilioAudioBridge):
     """Handle outgoing audio to Twilio (from voice agent)."""
+    print("🔊 Starting outgoing audio handler")
+    message_count = 0
+
     try:
         # Keep running as long as we haven't explicitly disconnected
         # The bridge connects to LiveKit asynchronously after receiving "start" event
         # So we need to wait patiently for it to become ready
         max_wait_for_connect = 30  # seconds
         waited = 0
-        
+
+        print(f"⏳ Waiting for audio bridge to connect (max {max_wait_for_connect}s)...")
+
         # Wait for bridge to connect (receives "start" event from Twilio first)
         while not bridge.is_connected and waited < max_wait_for_connect:
             await asyncio.sleep(0.1)
             waited += 0.1
-        
+
+            # Log progress every few seconds
+            if int(waited) % 5 == 0 and waited % 1 == 0:
+                print(f"⏳ Still waiting for bridge connection... ({waited:.0f}s elapsed)")
+
         if not bridge.is_connected:
-            print("⚠️ Bridge never connected to LiveKit, exiting outgoing handler")
+            print(f"❌ Bridge never connected to LiveKit after {waited:.1f}s, exiting outgoing handler")
             return
-        
-        print("✅ Bridge connected, starting outgoing audio loop")
-        
+
+        print(f"✅ Bridge connected after {waited:.1f}s, starting outgoing audio loop")
+        print(f"🎤 Bridge stream_sid: {bridge.stream_sid}")
+
         # Now stream audio as long as connected
+        loop_count = 0
         while bridge.is_connected:
+            loop_count += 1
+
             # Get audio to send to Twilio
             message = await bridge.get_outgoing_audio()
-            
+
             if message:
+                message_count += 1
                 await websocket.send_text(message)
+
+                # Log first few sends and then every 50th
+                if message_count <= 3 or message_count % 50 == 0:
+                    print(f"📡 Sent audio message #{message_count} to Twilio WebSocket")
+
             else:
                 # Small delay if no audio ready
                 await asyncio.sleep(0.01)
-        
+
+            # Log periodic status to ensure loop is running
+            if loop_count % 1000 == 0:
+                queue_size = bridge.outgoing_audio_queue.qsize()
+                print(f"🔄 Outgoing audio loop running (#{loop_count}), queue size: {queue_size}, sent: {message_count}")
+
+        print(f"🔌 Bridge disconnected, draining remaining audio ({bridge.outgoing_audio_queue.qsize()} messages)")
+
         # Drain any remaining audio after disconnect
+        drained = 0
         while not bridge.outgoing_audio_queue.empty():
             message = await bridge.get_outgoing_audio()
             if message:
+                drained += 1
                 await websocket.send_text(message)
-                
+
+        print(f"✅ Outgoing audio handler finished - sent {message_count} total messages, drained {drained}")
+
     except WebSocketDisconnect:
+        print(f"🔌 WebSocket disconnected during outgoing audio (sent {message_count} messages)")
         raise
     except Exception as e:
-        print(f"Error in outgoing audio handler: {e}")
+        print(f"❌ Error in outgoing audio handler after {message_count} messages: {e}")
+        import traceback
+        traceback.print_exc()
         raise
 
 
