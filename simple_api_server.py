@@ -969,11 +969,17 @@ async def _handle_outgoing_audio(websocket: WebSocket, bridge: TwilioAudioBridge
 
             if message:
                 message_count += 1
-                await websocket.send_text(message)
-
-                # Log first few sends and then every 50th
-                if message_count <= 3 or message_count % 50 == 0:
-                    print(f"📡 Sent audio message #{message_count} to Twilio WebSocket")
+                try:
+                    await websocket.send_text(message)
+                    # Log first few sends and then every 50th
+                    if message_count <= 3 or message_count % 50 == 0:
+                        print(f"📡 Sent audio message #{message_count} to Twilio WebSocket")
+                except Exception as send_error:
+                    print(f"❌ Failed to send audio message #{message_count}: {send_error}")
+                    # Check if WebSocket is still connected
+                    if hasattr(websocket, 'client_state'):
+                        print(f"🔌 WebSocket state: {websocket.client_state}")
+                    break  # Exit loop if we can't send
 
             else:
                 # Small delay if no audio ready

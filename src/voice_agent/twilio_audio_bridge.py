@@ -206,33 +206,54 @@ class TwilioAudioBridge:
         self.livekit_url = livekit_url or os.getenv("LIVEKIT_URL")
         self.livekit_api_key = livekit_api_key or os.getenv("LIVEKIT_API_KEY")
         self.livekit_api_secret = livekit_api_secret or os.getenv("LIVEKIT_API_SECRET")
-        
+
+        # Validate configuration
+        logger.info(f"🔧 Validating LiveKit configuration...")
+        logger.info(f"🌐 LIVEKIT_URL: {self.livekit_url}")
+        logger.info(f"🔑 LIVEKIT_API_KEY: {'✅ SET' if self.livekit_api_key else '❌ MISSING'}")
+        logger.info(f"🔐 LIVEKIT_API_SECRET: {'✅ SET' if self.livekit_api_secret else '❌ MISSING'}")
+
+        if not all([self.livekit_url, self.livekit_api_key, self.livekit_api_secret]):
+            missing = []
+            if not self.livekit_url: missing.append("LIVEKIT_URL")
+            if not self.livekit_api_key: missing.append("LIVEKIT_API_KEY")
+            if not self.livekit_api_secret: missing.append("LIVEKIT_API_SECRET")
+            logger.error(f"❌ Missing required LiveKit environment variables: {missing}")
+        else:
+            logger.info(f"✅ All LiveKit configuration present")
+
         # Runtime state
         self.room: Optional[rtc.Room] = None
         self.audio_source: Optional[rtc.AudioSource] = None
         self.local_track: Optional[rtc.LocalAudioTrack] = None
         self.stream_sid: Optional[str] = None
         self.is_connected = False
-        
+
         # Audio converter
         self.converter = AudioConverter()
-        
+
         # Queue for outgoing audio to Twilio
         self.outgoing_audio_queue: asyncio.Queue = asyncio.Queue()
-        
-        logger.info(f"TwilioAudioBridge initialized for room: {room_name}")
+
+        logger.info(f"🎉 TwilioAudioBridge initialized for room: {room_name}")
     
     async def connect_to_livekit(self) -> bool:
         """Connect to LiveKit room and set up audio tracks."""
+        logger.info(f"🔄 Starting LiveKit connection for room: {self.room_name}")
         try:
             # Create room token with proper permissions
+            logger.info("🎫 Creating room token...")
             token = self._create_room_token()
-            
+            logger.info(f"✅ Room token created successfully")
+
             # Create and connect to room
+            logger.info("🏠 Creating LiveKit room object...")
             self.room = rtc.Room()
-            
+            logger.info("✅ Room object created")
+
             # Set up event handlers using synchronous wrappers
             # LiveKit .on() requires sync callbacks - use asyncio.create_task for async work
+            logger.info("📋 Setting up event handlers...")
             @self.room.on("track_subscribed")
             def on_track_subscribed(
                 track: rtc.Track,
@@ -240,36 +261,47 @@ class TwilioAudioBridge:
                 participant: rtc.RemoteParticipant
             ):
                 asyncio.create_task(self._on_track_subscribed(track, publication, participant))
-            
+
             @self.room.on("disconnected")
             def on_disconnected():
                 asyncio.create_task(self._on_disconnected())
-            
+            logger.info("✅ Event handlers configured")
+
             # Connect to the room
+            logger.info(f"🌐 Connecting to LiveKit at {self.livekit_url}...")
             await self.room.connect(self.livekit_url, token)
-            
+            logger.info("✅ Connected to LiveKit room successfully")
+
             # Create audio source for publishing Twilio audio to LiveKit
+            logger.info("🎤 Creating audio source...")
             self.audio_source = rtc.AudioSource(
                 sample_rate=AudioConverter.LIVEKIT_SAMPLE_RATE,
                 num_channels=AudioConverter.LIVEKIT_CHANNELS
             )
-            
+            logger.info(f"✅ Audio source created ({AudioConverter.LIVEKIT_SAMPLE_RATE}Hz, {AudioConverter.LIVEKIT_CHANNELS} channels)")
+
             # Create local audio track
+            logger.info("🎵 Creating local audio track...")
             self.local_track = rtc.LocalAudioTrack.create_audio_track(
                 "twilio-audio",
                 self.audio_source
             )
-            
+            logger.info("✅ Local audio track created")
+
             # Publish the track
+            logger.info("📡 Publishing audio track to LiveKit...")
             await self.room.local_participant.publish_track(self.local_track)
-            
+            logger.info("✅ Audio track published successfully")
+
             self.is_connected = True
-            logger.info(f"Connected to LiveKit room: {self.room_name}")
-            
+            logger.info(f"🎉 FULL SUCCESS: Connected to LiveKit room: {self.room_name}")
+
             return True
-            
+
         except Exception as e:
-            logger.error(f"Failed to connect to LiveKit: {e}")
+            logger.error(f"❌ FAILED to connect to LiveKit at step: {e}")
+            import traceback
+            logger.error(f"📋 Full traceback:\n{traceback.format_exc()}")
             return False
     
     def _create_room_token(self) -> str:
