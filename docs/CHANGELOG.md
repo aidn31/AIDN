@@ -4,6 +4,90 @@ All notable changes to the AIDN project are documented in this file.
 
 ---
 
+## [1.6.0] - 2025-12-27 - INCOMING AUDIO PIPELINE DEBUGGING 🔍
+
+### Session: December 27, 2025 Evening (6:00 PM - 11:00 PM EST) - MAJOR ROOT CAUSE ANALYSIS
+**Worked By:** Claude (AI Assistant) with Tommy Roldan
+
+### 🎯 BREAKTHROUGH SESSION: Identified Root Cause of Post-Transfer Silence
+
+**Session Goal:** Debug why voice agent never speaks despite infrastructure working perfectly.
+
+### 🔍 CRITICAL DISCOVERIES: The Real Problem Identified
+
+**MAJOR BREAKTHROUGH:** Discovered that **outgoing audio works perfectly** (2,532+ messages sent to caller) but **incoming audio pipeline is completely broken** (caller voice never reaches voice agent).
+
+**Root Cause Analysis:**
+- ✅ **Outgoing Path**: Voice Agent → LiveKit → TwilioAudioBridge → Twilio → Caller (**WORKING**)
+- ❌ **Incoming Path**: Caller → Twilio → TwilioAudioBridge → LiveKit → Voice Agent (**BROKEN**)
+
+### ✅ Infrastructure Testing Results - All Working
+
+**1. Voice Agent Worker:**
+- ✅ Successfully registers with LiveKit Cloud
+- ✅ Accepts and joins rooms consistently (`aidn-call-*` naming)
+- ✅ Sessions start and become "active on the call"
+- ✅ Stays connected until participant disconnect
+
+**2. Audio Pipeline Components:**
+- ✅ **TwiML XML Parsing**: 100% resolved from previous session
+- ✅ **Stream_sid Extraction**: Fixed and working correctly
+- ✅ **WebSocket Connection**: Twilio connects to Railway successfully
+- ✅ **Parameter Passing**: Room names and metadata working
+- ✅ **LiveKit Integration**: Rooms created and participants connected
+
+**3. Outgoing Audio Path (Agent → Caller):**
+- ✅ **Audio Generation**: Voice agent produces audio frames
+- ✅ **Format Conversion**: PCM → μ-law conversion working
+- ✅ **Twilio Delivery**: 2,532+ audio messages sent successfully
+- ✅ **Base64 Encoding**: Payload generation correct
+
+### ❌ Incoming Audio Path Analysis - BROKEN
+
+**Why Voice Agent Never Speaks:**
+The voice agent relies on LiveKit's conversation flow where `on_enter()` method triggers initial greeting **only after detecting incoming audio/speech**. Since incoming audio never reaches the voice agent's STT:
+1. Voice agent never "hears" caller say "hello"
+2. `on_enter()` method never triggers
+3. No initial greeting or TTS generation occurs
+4. Complete silence despite active session
+
+**Incoming Audio Failure Points Identified:**
+
+**1. WebSocket Message Processing:**
+- ✅ Messages received from Twilio
+- ❌ **ZERO DEBUG LOGS** for incoming audio processing
+
+**2. TwilioAudioBridge Media Events:**
+- ✅ Bridge connects to LiveKit successfully
+- ✅ Audio source and local track creation working
+- ❌ **NO EVIDENCE** of media event processing
+- ❌ **NO LOGS** showing μ-law decode or PCM conversion
+
+**3. LiveKit Audio Publishing:**
+- ✅ Bridge publishes outgoing audio track (agent → caller)
+- ❌ **UNKNOWN** if incoming audio published to LiveKit
+- ❌ **NO LOGS** showing `audio_source.capture_frame()` calls
+
+**4. Voice Agent STT (Speech-to-Text):**
+- ✅ Deepgram STT configured correctly (`nova-2` model)
+- ❌ **ZERO STT ACTIVITY** in logs
+- ❌ **NO SPEECH RECOGNITION** events or transcripts
+- ❌ **NO "user said" messages** despite caller speaking
+
+### 🛠️ DEBUG INFRASTRUCTURE DEPLOYED
+
+**Comprehensive Logging Added:**
+- 📨 **WebSocket Message Logging**: Track all incoming Twilio messages
+- 📥 **Media Event Logging**: Count and log audio payload sizes
+- 🔓 **Payload Decode Logging**: Track base64 → μ-law conversion
+- 🎵 **PCM Conversion Logging**: Track μ-law → PCM format changes
+- ✅ **LiveKit Publishing Logging**: Track `capture_frame()` calls
+- ❌ **Error Handling**: Comprehensive exception logging
+
+**Files Modified with Debug Logging:**
+- `src/voice_agent/twilio_audio_bridge.py`: Added media event processing logs
+- `simple_api_server.py`: Added WebSocket message type logging
+
 ## [1.5.0] - 2025-12-27 - POST-TRANSFER SILENCE DEBUGGING 🔍
 
 ### Session: December 27, 2025 Afternoon (12:15 PM EST) - MULTIPLE CRITICAL FIXES APPLIED

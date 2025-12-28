@@ -1,33 +1,44 @@
 # AIDN Project Status
 
-**Last Updated:** December 27, 2025 - 12:15 PM EST
-**Current Phase:** POST-TRANSFER SILENCE DEBUGGING
+**Last Updated:** December 27, 2025 - 11:00 PM EST
+**Current Phase:** INCOMING AUDIO PIPELINE DEBUGGING
 **Updated By:** Claude (AI Assistant)
 
 ---
 
-## 🟡 CURRENT STATUS: Post-Transfer Silence Issue
+## 🔍 CURRENT STATUS: Incoming Audio Pipeline Broken
 
 **Railway URL:** `https://aidn-production.up.railway.app`
 **Twilio Webhook:** Configured to Railway URL ✅
 **Voice Agent:** Ready with persona and scripts ✅
 **Stream TwiML:** ✅ **FIXED** - No more "application error"
 **Transfer Message:** ✅ **WORKING** - Callers hear "Please hold while I connect you to our agent"
-**Current Issue:** ❌ **SILENCE** after transfer message - AI conversation not starting
+**Outgoing Audio:** ✅ **WORKING** - Voice agent audio reaches caller (2,532+ messages sent)
+**Current Issue:** ❌ **INCOMING AUDIO BROKEN** - Caller voice never reaches voice agent STT
 
-### 🎯 SESSION UPDATE (Dec 27, 2025 - POST-TRANSFER SILENCE DEBUGGING):
+### 🎯 SESSION UPDATE (Dec 27, 2025 - INCOMING AUDIO PIPELINE DEBUGGING):
 
-**MULTIPLE CRITICAL FIXES APPLIED:**
-- ✅ **TwiML XML Parsing Fix:** Proper XML entity escaping resolves Twilio error 12100
-- ✅ **WebSocket Parameter Parsing Fix:** Added `parse_websocket_query_params()` with `html.unescape()` support
-- ✅ **TwilioAudioBridge Connection Fix:** Added missing `await bridge.connect_to_livekit()` call
-- ✅ **Room Name Format Fix:** Proper "aidn-*" prefix parsing for voice agent acceptance
+**MAJOR BREAKTHROUGH - ROOT CAUSE IDENTIFIED:**
+- ✅ **Outgoing Audio Pipeline**: Voice Agent → Twilio → Caller (**100% WORKING**)
+- ❌ **Incoming Audio Pipeline**: Caller → Twilio → Voice Agent (**COMPLETELY BROKEN**)
 
-**CONFIRMED WORKING COMPONENTS:**
-- Transfer message plays successfully ("Please hold while I connect you to our agent")
-- WebSocket connections establish between Twilio and Railway
-- Voice agent worker running and registered with LiveKit Cloud
-- Room names properly formatted with "aidn-" prefix
+**CRITICAL DISCOVERY:**
+The voice agent produces audio perfectly (2,532+ messages sent) but **never hears the caller** because incoming audio never reaches the voice agent's Speech-to-Text system.
+
+**WHY VOICE AGENT NEVER SPEAKS:**
+LiveKit agents wait for `on_enter()` trigger which only fires when **incoming audio/speech is detected**. Since caller voice never reaches STT:
+1. Voice agent never "hears" caller say "hello"
+2. `on_enter()` method never triggers
+3. No initial greeting generated
+4. Complete silence despite active session
+
+**COMPREHENSIVE DEBUG INFRASTRUCTURE DEPLOYED:**
+- 📨 WebSocket message type logging
+- 📥 Twilio media event tracking
+- 🔓 Base64 payload decode logging
+- 🎵 μ-law → PCM conversion logging
+- ✅ LiveKit audio publishing logging
+- ❌ Full error handling and stack traces
 
 ### 🧪 CURRENT TESTING RESULTS (Dec 27, 2025 - Multiple Sessions):
 

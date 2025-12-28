@@ -1,34 +1,38 @@
 # AIDN Next Steps
 
-**Last Updated:** December 27, 2025 - 12:15 PM EST
+**Last Updated:** December 27, 2025 - 11:00 PM EST
 **Updated By:** Claude (AI Assistant)
 
 ---
 
-## 🟡 CURRENT BLOCKER: Post-Transfer Silence Issue
+## 🔍 CURRENT BLOCKER: Incoming Audio Pipeline Broken
 
-Multiple critical fixes applied but AI conversation still not starting.
+Root cause identified: Outgoing audio works perfectly, incoming audio completely broken.
 1. **✅ COMPLETED: TwiML XML Parsing Fixed** - No more "application error"
 2. **✅ COMPLETED: WebSocket Parameter Parsing Fixed** - Room names extract correctly
 3. **✅ COMPLETED: TwilioAudioBridge Connection Fixed** - Added missing connect_to_livekit() call
-4. **❌ CURRENT ISSUE: Post-Transfer Silence** - LiveKit room creation or voice agent job dispatch failing
-5. **🎯 NEXT: Diagnostic Phase** - Need Railway logs and LiveKit room state investigation
+4. **✅ COMPLETED: Stream_sid Extraction Fixed** - No more "No stream_sid available" errors
+5. **✅ COMPLETED: Outgoing Audio Confirmed** - 2,532+ messages sent to caller successfully
+6. **❌ CURRENT ISSUE: Incoming Audio Broken** - Caller voice never reaches voice agent STT
+7. **🎯 NEXT: Debug Incoming Audio Flow** - Use deployed logging to trace exact failure point
 
 ---
 
-## 🔍 IMMEDIATE: Silence Issue Diagnostics
+## 🔍 IMMEDIATE: Incoming Audio Pipeline Diagnostics
 
-### 🎯 CURRENT STATUS (Dec 27, 2025) - POST-TRANSFER SILENCE
+### 🎯 CURRENT STATUS (Dec 27, 2025) - INCOMING AUDIO PIPELINE DEBUGGING
 
-**✅ MULTIPLE BREAKTHROUGHS ACHIEVED:**
+**✅ MAJOR BREAKTHROUGHS ACHIEVED:**
 - TwiML XML parsing "application error" **100% RESOLVED**
 - WebSocket parameter parsing **FIXED** with `html.unescape()` support
 - TwilioAudioBridge connection **FIXED** with missing `connect_to_livekit()` call
+- Stream_sid extraction **FIXED** - No more "No stream_sid available" errors
 - Transfer message plays successfully: "Please hold while I connect you to our agent"
 - Voice agent worker running and registered with LiveKit Cloud
+- **Outgoing audio confirmed working**: 2,532+ messages sent to caller
 
-**❌ REMAINING ISSUE - SILENCE AFTER TRANSFER:**
-Complete silence instead of AI conversation starting
+**❌ ROOT CAUSE IDENTIFIED - INCOMING AUDIO BROKEN:**
+Caller voice never reaches voice agent STT system, preventing conversation start
 
 ### 🧪 COMPREHENSIVE TEST RESULTS (Dec 27, 2025):
 
@@ -45,26 +49,34 @@ Complete silence instead of AI conversation starting
 - Missing Railway WebSocket logs prevent detailed diagnosis
 - Audio bridge connection status unknown
 
-### 📋 NEXT SESSION: Silent Failure Root Cause Analysis
+### 📋 NEXT SESSION: Incoming Audio Pipeline Fix (1-2 hours)
 
-#### CRITICAL DIAGNOSTICS NEEDED (1-2 hours)
+#### PRIORITY 1: USE DEPLOYED DEBUG LOGGING
 
-1. **[🔍 PRIMARY] Railway WebSocket Logging:**
-   - Access Railway deployment logs to see WebSocket connection status
-   - Confirm if `bridge.connect_to_livekit()` succeeds or fails
-   - Check for LiveKit room creation errors
+**Comprehensive logging is now deployed to Railway:**
+1. **[🔍 IMMEDIATE] Check Railway Logs for Debug Output:**
+   - Make test call and monitor Railway logs in real-time
+   - Look for incoming audio debug messages:
+     - 📨 WebSocket message types and counts
+     - 📥 Media event processing logs
+     - 🔓 Base64 payload decode status
+     - 🎵 μ-law → PCM conversion results
+     - ✅ LiveKit publishing success/failure
+     - ❌ Any error messages or exceptions
 
-2. **[🔍 SECONDARY] LiveKit Room State Investigation:**
-   - Verify rooms are actually created in LiveKit Cloud
-   - Test voice agent worker with manual room creation
-   - Confirm job dispatch mechanism between LiveKit and worker
+2. **[🔍 IDENTIFY] Exact Failure Point:**
+   - Where does incoming audio stop in the pipeline?
+   - Are media events even reaching the WebSocket handler?
+   - Is TwilioAudioBridge processing them correctly?
+   - Are audio frames being published to LiveKit?
 
-3. **[🔍 FALLBACK] Local Audio Bridge Testing:**
-   - Test TwilioAudioBridge connection independently
-   - Verify LiveKit API credentials and permissions
-   - Test audio format conversion pipeline
-   - Test full conversation flow with appointment booking
-   - Validate persona, scripts, and objection handling work in practice
+#### PRIORITY 2: FIX THE SPECIFIC ISSUE
+
+Based on debug log findings, likely fixes:
+1. **WebSocket Media Events Not Reaching Bridge**
+2. **μ-law/PCM Conversion Issues**
+3. **LiveKit Audio Publishing Problems**
+4. **Voice Agent STT Configuration Issues**
 
 #### NEXT: Production Integration (2-3 hours)
 1. **[ ] Wire up Dashboard Call Button onClick Handler**
