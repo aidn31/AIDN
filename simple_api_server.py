@@ -779,9 +779,22 @@ async def twilio_audio_stream(websocket: WebSocket):
                 stream_sid = start_info.get("streamSid")  # CRITICAL: Extract stream_sid
                 call_sid = start_info.get("callSid")
 
+                # DEBUG: Print the raw customParameters to diagnose the issue
+                print(f"🔍 DEBUG: Raw customParameters: {custom_params}")
+                print(f"🔍 DEBUG: All start_info keys: {list(start_info.keys())}")
+
                 room_name = custom_params.get("room", f"aidn-call-{uuid4()}")
                 lead_id = custom_params.get("lead_id", str(uuid4()))
                 agent_id = custom_params.get("agent_id", str(uuid4()))
+
+                # DEBUG: Check if parameters were extracted correctly
+                print(f"🔍 DEBUG: Extracted room_name: {room_name}")
+                print(f"🔍 DEBUG: Extracted lead_id: {lead_id}")
+                print(f"🔍 DEBUG: Extracted agent_id: {agent_id}")
+
+                # If we got default values, there's a parameter extraction issue
+                if lead_id.count('-') == 4 and len(lead_id) == 36:  # UUID format
+                    print("❌ WARNING: lead_id appears to be a generated UUID (parameter extraction failed)")
 
                 print(f"✅ Extracted from Twilio start event:")
                 print(f"🏠 Room: {room_name}")
@@ -800,9 +813,22 @@ async def twilio_audio_stream(websocket: WebSocket):
             stream_sid = start_info.get("streamSid")  # CRITICAL: Extract stream_sid
             call_sid = start_info.get("callSid")
 
+            # DEBUG: Print the raw customParameters to diagnose the issue
+            print(f"🔍 DEBUG (direct start): Raw customParameters: {custom_params}")
+            print(f"🔍 DEBUG (direct start): All start_info keys: {list(start_info.keys())}")
+
             room_name = custom_params.get("room", f"aidn-call-{uuid4()}")
             lead_id = custom_params.get("lead_id", str(uuid4()))
             agent_id = custom_params.get("agent_id", str(uuid4()))
+
+            # DEBUG: Check if parameters were extracted correctly
+            print(f"🔍 DEBUG (direct start): Extracted room_name: {room_name}")
+            print(f"🔍 DEBUG (direct start): Extracted lead_id: {lead_id}")
+            print(f"🔍 DEBUG (direct start): Extracted agent_id: {agent_id}")
+
+            # If we got default values, there's a parameter extraction issue
+            if lead_id.count('-') == 4 and len(lead_id) == 36:  # UUID format
+                print("❌ WARNING (direct start): lead_id appears to be a generated UUID (parameter extraction failed)")
 
             print(f"✅ Extracted from Twilio start event (direct):")
             print(f"🏠 Room: {room_name}")
