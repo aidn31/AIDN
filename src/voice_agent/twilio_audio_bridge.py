@@ -322,12 +322,18 @@ class TwilioAudioBridge:
             can_publish_data=True
         ))
         
-        # Add room metadata with lead and agent info
+        # Add room metadata with lead and agent info for bridge participant
         token.with_metadata(json.dumps({
             "lead_id": self.lead_id,
             "agent_id": self.agent_id,
             "type": "twilio_bridge"
         }))
+
+        # CRITICAL: Also set room-level metadata attributes for voice agent access
+        token.with_attributes({
+            "lead_id": self.lead_id,
+            "agent_id": self.agent_id
+        })
         
         return token.to_jwt()
     

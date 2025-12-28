@@ -83,25 +83,52 @@ async def entrypoint(ctx: JobContext):
     # Wait for the room to be ready
     await ctx.connect()
     
-    # Extract lead and agent info from room metadata
+    # Extract lead and agent info from room metadata or participant attributes
     lead = None
     agent_info = None
     lead_id = None
     agent_id = None
-    
+
     try:
-        # Get room metadata
+        # Method 1: Try room-level metadata first
         room_metadata = ctx.room.metadata
         if room_metadata:
             metadata = json.loads(room_metadata)
             lead_id = metadata.get("lead_id")
             agent_id = metadata.get("agent_id")
-            
-            logger.info(f"📋 Room metadata - Lead: {lead_id}, Agent: {agent_id}")
+            logger.info(f"📋 Found room metadata - Lead: {lead_id}, Agent: {agent_id}")
+
+        # Method 2: If no room metadata, check for bridge participant with metadata
+        if not lead_id or not agent_id:
+            logger.info("🔍 No room metadata found, checking participant metadata...")
+            for participant in ctx.room.remote_participants.values():
+                if participant.metadata:
+                    try:
+                        participant_meta = json.loads(participant.metadata)
+                        if participant_meta.get("type") == "twilio_bridge":
+                            lead_id = participant_meta.get("lead_id", lead_id)
+                            agent_id = participant_meta.get("agent_id", agent_id)
+                            logger.info(f"📋 Found participant metadata - Lead: {lead_id}, Agent: {agent_id}")
+                            break
+                    except json.JSONDecodeError:
+                        continue
+
+        # Method 3: Extract from room name as fallback (if room name contains IDs)
+        if not lead_id or not agent_id:
+            logger.warning("❌ No metadata found in room or participants")
+            logger.info(f"🏠 Room name: {room_name}")
+            # Could extract from room name if it contains the IDs
+
     except json.JSONDecodeError:
         logger.warning("Could not parse room metadata")
     except Exception as e:
         logger.error(f"Error reading room metadata: {e}")
+
+    # Log final extraction results
+    if lead_id and agent_id:
+        logger.info(f"✅ Successfully extracted - Lead: {lead_id}, Agent: {agent_id}")
+    else:
+        logger.warning(f"⚠️ Incomplete metadata extraction - Lead: {lead_id}, Agent: {agent_id}")
     
     # Load lead from database
     if lead_id:
