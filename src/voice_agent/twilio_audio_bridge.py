@@ -389,23 +389,54 @@ class TwilioAudioBridge:
                 # Incoming audio from Twilio
                 media = data.get("media", {})
                 payload = media.get("payload", "")
-                
+
+                # INCOMING AUDIO DEBUG LOGGING
+                if not hasattr(self, '_incoming_media_count'):
+                    self._incoming_media_count = 0
+                self._incoming_media_count += 1
+
+                # Log first few media events and every 50th
+                if self._incoming_media_count <= 3 or self._incoming_media_count % 50 == 0:
+                    logger.info(f"📥 Received media event #{self._incoming_media_count} from Twilio (payload: {len(payload)} chars)")
+
                 if payload and self.is_connected and self.audio_source:
-                    # Decode base64 μ-law audio
-                    mulaw_audio = base64.b64decode(payload)
-                    
-                    # Convert to PCM for LiveKit
-                    pcm_audio = self.converter.mulaw_to_pcm16(mulaw_audio)
-                    
-                    # Create audio frame and publish to LiveKit
-                    frame = rtc.AudioFrame(
-                        data=pcm_audio,
-                        sample_rate=AudioConverter.LIVEKIT_SAMPLE_RATE,
-                        num_channels=AudioConverter.LIVEKIT_CHANNELS,
-                        samples_per_channel=len(pcm_audio) // 2  # 16-bit = 2 bytes per sample
-                    )
-                    
-                    await self.audio_source.capture_frame(frame)
+                    try:
+                        # Decode base64 μ-law audio
+                        mulaw_audio = base64.b64decode(payload)
+                        if self._incoming_media_count <= 3:
+                            logger.info(f"🔓 Decoded payload: {len(payload)} chars → {len(mulaw_audio)} bytes μ-law")
+
+                        # Convert to PCM for LiveKit
+                        pcm_audio = self.converter.mulaw_to_pcm16(mulaw_audio)
+                        if self._incoming_media_count <= 3:
+                            logger.info(f"🎵 Converted audio: {len(mulaw_audio)} bytes μ-law → {len(pcm_audio)} bytes PCM")
+
+                        # Create audio frame and publish to LiveKit
+                        frame = rtc.AudioFrame(
+                            data=pcm_audio,
+                            sample_rate=AudioConverter.LIVEKIT_SAMPLE_RATE,
+                            num_channels=AudioConverter.LIVEKIT_CHANNELS,
+                            samples_per_channel=len(pcm_audio) // 2  # 16-bit = 2 bytes per sample
+                        )
+
+                        await self.audio_source.capture_frame(frame)
+                        if self._incoming_media_count <= 3:
+                            logger.info(f"✅ Published audio frame #{self._incoming_media_count} to LiveKit ({frame.samples_per_channel} samples, {frame.sample_rate}Hz)")
+
+                    except Exception as e:
+                        logger.error(f"❌ Error processing incoming audio #{self._incoming_media_count}: {e}")
+                        import traceback
+                        traceback.print_exc()
+
+                elif not payload:
+                    if self._incoming_media_count <= 3:
+                        logger.warning(f"⚠️ Media event #{self._incoming_media_count} has empty payload")
+                elif not self.is_connected:
+                    if self._incoming_media_count <= 3:
+                        logger.warning(f"⚠️ Media event #{self._incoming_media_count} received but bridge not connected to LiveKit")
+                elif not self.audio_source:
+                    if self._incoming_media_count <= 3:
+                        logger.warning(f"⚠️ Media event #{self._incoming_media_count} received but no audio_source available")
                 
                 return None
                 

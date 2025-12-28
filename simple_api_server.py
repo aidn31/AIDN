@@ -891,22 +891,41 @@ async def twilio_audio_stream(websocket: WebSocket):
 
 async def _handle_incoming_audio(websocket: WebSocket, bridge: TwilioAudioBridge):
     """Handle incoming audio from Twilio."""
+    message_count = 0
     try:
         while True:
             # Receive message from Twilio
             message = await websocket.receive_text()
-            
+            message_count += 1
+
+            # INCOMING MESSAGE DEBUG LOGGING
+            try:
+                data = json.loads(message)
+                event_type = data.get("event", "unknown")
+
+                # Log message types and count media events specifically
+                if event_type == "media":
+                    if message_count <= 5 or message_count % 100 == 0:
+                        print(f"📨 WebSocket incoming message #{message_count}: {event_type} (payload: {len(data.get('media', {}).get('payload', ''))} chars)")
+                else:
+                    print(f"📨 WebSocket incoming message #{message_count}: {event_type}")
+
+            except json.JSONDecodeError:
+                print(f"📨 WebSocket incoming message #{message_count}: Invalid JSON")
+
             # Process the message (audio, start, stop, etc.)
             response = await bridge.process_twilio_message(message)
-            
+
             # Send response if any
             if response:
                 await websocket.send_text(response)
-                
+
     except WebSocketDisconnect:
         raise
     except Exception as e:
-        print(f"Error in incoming audio handler: {e}")
+        print(f"❌ Error in incoming audio handler after {message_count} messages: {e}")
+        import traceback
+        traceback.print_exc()
         raise
 
 
