@@ -397,3 +397,35 @@ The webhook now works, but it returns basic TwiML `<Say>` instead of connecting 
 3. **Enable two-way conversation** with Deepgram STT + OpenAI LLM + TTS
 
 **STATUS**: Webhook bug fixed ✅ | Basic TwiML working ✅ | Full AI voice agent needs LiveKit bridge
+
+---
+
+## ❌ CURRENT STATUS: BROKEN - Needs Fix
+**Date**: December 29, 2025 - Session End
+
+### What Happened
+- **Piece 1** (Twilio → WebSocket): ✅ WORKING (918 audio packages received)
+- **Piece 2** (LiveKit room creation): ✅ WORKING (room creates successfully)
+- **Piece 2** (Audio publishing): ❌ NOT WORKING (WebSocket handler crashes silently)
+
+### The Problem
+The WebSocket handler in `simple_websocket_test.py` is crashing silently. No debug logs appear after "connection open". We tried adding debug logging but broke the indentation, causing Python syntax errors.
+
+### Current State
+- **Railway deployment**: CRASHED due to IndentationError around lines 145-146
+- **The code**: Needs to be reverted to working state
+
+### To Fix (Next Session)
+1. **Revert** `simple_websocket_test.py` to commit `3335e7d` (last working version)
+2. **Carefully add ONE** debug print right after `await websocket.accept()`
+3. **Test** to find why WebSocket handler crashes silently
+4. **Root cause likely**: call_sid not being passed correctly from TwiML to WebSocket URL
+
+### Key Commits
+- **3335e7d**: "Force fresh build" - **LAST WORKING VERSION**
+- **Later commits**: Broke indentation and caused crashes
+
+### Issue Details
+The WebSocket handler should show debug logs but crashes before any print statements execute. The TwiML sends audio to the WebSocket, but the handler never processes it properly, preventing audio from reaching LiveKit.
+
+**CRITICAL**: Must revert to working state before attempting any further debugging.
