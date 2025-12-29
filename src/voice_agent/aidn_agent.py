@@ -274,22 +274,19 @@ NEVER discuss specific policy details or give insurance advice. Your only job is
 
     async def on_enter(self):
         """Called when agent becomes active."""
+        logger.info("🎤 CRITICAL: on_enter() method called - about to execute immediate greeting")
+
+        try:
+            # Force immediate greeting without waiting for caller speech
+            logger.info("🗣️ EXECUTING: session.say() for immediate greeting")
+            await self.session.say("Hello? This is AIDN calling. I'm here about the insurance information you requested. Can you hear me okay?")
+            logger.info("✅ COMPLETED: session.say() executed successfully")
+        except Exception as e:
+            logger.error(f"❌ ERROR in session.say(): {e}")
+            import traceback
+            logger.error(f"📋 Full traceback:\n{traceback.format_exc()}")
+
         logger.info("AIDN Voice Agent session started")
-
-        # Generate personalized greeting if we have lead context
-        if self.current_lead:
-            greeting_instructions = f"""Greet {self.current_lead.first_name} warmly and naturally.
-
-Reference that they requested information about {self.current_lead.lead_type.replace('_', ' ') if self.current_lead.lead_type else 'life insurance'}.
-
-Example greeting: "Hi {self.current_lead.first_name}! This is [your name] calling about the insurance information you requested. Did I catch you at a good time?"
-
-Be warm and conversational, not scripted."""
-        else:
-            greeting_instructions = "Greet the caller warmly and ask about the insurance information they requested."
-
-        # Force immediate greeting without waiting for caller speech
-        await self.session.say("Hello? This is AIDN calling. I'm here about the insurance information you requested. Can you hear me okay?")
 
     async def on_exit(self):
         """Called when agent session ends."""
