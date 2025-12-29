@@ -97,7 +97,7 @@ async def test_phone_call():
 
         print(f"💾 Logged call in database")
 
-        await db.close()
+        await db.disconnect()
 
         return call.sid
 

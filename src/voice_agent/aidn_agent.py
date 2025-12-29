@@ -288,7 +288,8 @@ Be warm and conversational, not scripted."""
         else:
             greeting_instructions = "Greet the caller warmly and ask about the insurance information they requested."
 
-        await self.session.generate_reply(instructions=greeting_instructions)
+        # Force immediate greeting without waiting for caller speech
+        await self.session.say("Hello? This is AIDN calling. I'm here about the insurance information you requested. Can you hear me okay?")
 
     async def on_exit(self):
         """Called when agent session ends."""
