@@ -18,7 +18,6 @@ from datetime import datetime
 from fastapi import FastAPI, WebSocket, Request
 from fastapi.responses import Response
 import uvicorn
-from dotenv import load_dotenv
 
 # LiveKit imports (new for Piece 2)
 try:
@@ -28,9 +27,6 @@ try:
 except ImportError as e:
     LIVEKIT_AVAILABLE = False
     print(f"⚠️ LiveKit not available: {e}")
-
-# Load environment variables
-load_dotenv()
 
 app = FastAPI()
 
