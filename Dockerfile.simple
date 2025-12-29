@@ -1,0 +1,15 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install minimal dependencies for the simple test
+RUN pip install fastapi uvicorn websockets python-multipart
+
+# Copy only the simple test file
+COPY simple_websocket_test.py .
+
+# Expose port
+EXPOSE 8000
+
+# Run the simple test server
+CMD ["python", "simple_websocket_test.py"]
