@@ -621,20 +621,20 @@ async def twilio_webhook(request: Request):
     """
     Twilio webhook endpoint that connects incoming calls to LiveKit voice agent.
     This is called by Twilio when a call is answered.
-    
+
     CRITICAL: Twilio sends form-urlencoded data, NOT JSON!
     We must use Request object and return Response with text/xml content type.
     """
     try:
         # Parse Twilio's form-urlencoded data (NOT JSON!)
         form_data = await request.form()
-        
+
         # Extract query parameters from URL (room, lead_id, agent_id come via query string)
         query_params = request.query_params
         room_name = query_params.get("room")
         lead_id = query_params.get("lead_id")
         agent_id = query_params.get("agent_id")
-        
+
         # Log Twilio's form data
         print(f"📞 Twilio webhook called")
         print(f"🏠 Room: {room_name}, Lead: {lead_id}, Agent: {agent_id}")
@@ -643,9 +643,45 @@ async def twilio_webhook(request: Request):
         print(f"📱 From: {form_data.get('From')}")
         print(f"📊 CallStatus: {form_data.get('CallStatus')}")
 
-        # For now, return a simple TwiML response that says the system is connecting
-        # In full production, this would integrate with LiveKit to start the voice agent
-        twiml_response = """<?xml version="1.0" encoding="UTF-8"?>
+        # Create LiveKit room for the call
+        if room_name and lead_id and agent_id:
+            from src.voice_agent.twilio_audio_bridge import create_livekit_room_for_call, generate_stream_twiml
+
+            print(f"🏠 Creating LiveKit room: {room_name}")
+            room_created = await create_livekit_room_for_call(room_name, lead_id, agent_id)
+
+            if room_created:
+                print(f"✅ LiveKit room created successfully")
+
+                # Generate WebSocket URL for audio streaming
+                # This will connect to our WebSocket handler that bridges Twilio ↔ LiveKit
+                import os
+                base_url = os.getenv("LIVEKIT_WEBHOOK_BASE_URL", "https://aidn-production.up.railway.app")
+                websocket_url = f"{base_url.replace('https://', 'wss://').replace('http://', 'ws://')}/twilio-stream"
+
+                print(f"🔗 WebSocket URL: {websocket_url}")
+
+                # Generate TwiML that streams audio to our WebSocket
+                twiml_response = generate_stream_twiml(
+                    websocket_url=websocket_url,
+                    room_name=room_name,
+                    lead_id=lead_id,
+                    agent_id=agent_id
+                )
+
+                print(f"✅ Generated TwiML with Stream for LiveKit integration")
+            else:
+                print(f"❌ Failed to create LiveKit room")
+                # Fallback to simple message
+                twiml_response = """<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="Polly.Joanna">We are experiencing technical difficulties. Please try calling back in a few minutes.</Say>
+    <Hangup/>
+</Response>"""
+        else:
+            print(f"❌ Missing required parameters: room={room_name}, lead_id={lead_id}, agent_id={agent_id}")
+            # Fallback to simple message
+            twiml_response = """<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Say voice="Polly.Joanna">Hello, please hold while we connect you to your insurance benefits specialist.</Say>
     <Pause length="2"/>
@@ -663,7 +699,7 @@ async def twilio_webhook(request: Request):
         print(f"❌ Webhook error: {e}")
         import traceback
         traceback.print_exc()
-        
+
         # Return error TwiML with proper content type
         error_twiml = """<?xml version="1.0" encoding="UTF-8"?>
 <Response>
@@ -671,6 +707,60 @@ async def twilio_webhook(request: Request):
     <Hangup/>
 </Response>"""
         return Response(content=error_twiml, media_type="text/xml")
+
+
+@app.websocket("/twilio-stream")
+async def twilio_stream_handler(websocket):
+    """
+    WebSocket endpoint that bridges Twilio audio streams to LiveKit voice agent.
+
+    This is where the real-time audio magic happens!
+    """
+    from fastapi import WebSocket
+    from src.voice_agent.twilio_audio_bridge import TwilioAudioBridge
+
+    await websocket.accept()
+    print(f"🔗 Twilio WebSocket connection accepted")
+
+    # Extract room/lead/agent info from WebSocket query parameters
+    query_params = dict(websocket.query_params)
+    room_name = query_params.get("room")
+    lead_id = query_params.get("lead_id")
+    agent_id = query_params.get("agent_id")
+
+    print(f"🔗 WebSocket params - Room: {room_name}, Lead: {lead_id}, Agent: {agent_id}")
+
+    if not all([room_name, lead_id, agent_id]):
+        print(f"❌ Missing WebSocket parameters")
+        await websocket.close(code=1000)
+        return
+
+    # Create audio bridge
+    bridge = TwilioAudioBridge(
+        room_name=room_name,
+        lead_id=lead_id,
+        agent_id=agent_id
+    )
+
+    try:
+        # Process WebSocket messages in a loop
+        while True:
+            # Handle incoming messages from Twilio
+            message = await websocket.receive_text()
+            await bridge.process_twilio_message(message)
+
+            # Send any queued audio back to Twilio
+            outgoing_audio = await bridge.get_outgoing_audio()
+            if outgoing_audio:
+                await websocket.send_text(outgoing_audio)
+
+    except Exception as e:
+        print(f"❌ WebSocket error: {e}")
+        import traceback
+        traceback.print_exc()
+    finally:
+        print(f"🔗 WebSocket disconnected")
+        await bridge.disconnect()
 
 
 if __name__ == "__main__":
@@ -683,6 +773,6 @@ if __name__ == "__main__":
         app,
         host="0.0.0.0",
         port=8000,
-        reload=True,
+        reload=False,
         log_level="info"
     )
