@@ -3,7 +3,7 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Install minimal dependencies for the simple test
-RUN pip install fastapi uvicorn websockets
+RUN pip install fastapi uvicorn websockets python-multipart
 
 # Copy only the simple test file
 COPY simple_websocket_test.py .
