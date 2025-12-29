@@ -120,26 +120,29 @@ async def twilio_stream(websocket: WebSocket):
     global audio_package_count
 
     await websocket.accept()
-    print("🔌 Twilio connected to WebSocket!")
+    print("🔌 WebSocket accepted, starting handler...")
 
-    # NEW PIECE 2: Get call_sid and connect to LiveKit room
-    query_params = websocket.query_params
-    call_sid = query_params.get('call_sid', 'unknown')
-    livekit_room = None
-    livekit_connection = None
-    audio_source = None
+    try:
+        print("🔌 Twilio connected to WebSocket!")
 
-    print(f"📞 WebSocket connected for call: {call_sid}")
+        # NEW PIECE 2: Get call_sid and connect to LiveKit room
+        query_params = websocket.query_params
+        call_sid = query_params.get('call_sid', 'unknown')
+        livekit_room = None
+        livekit_connection = None
+        audio_source = None
 
-    # DEBUG: Log call_sid and active_rooms for diagnosis
-    print(f"🐛 DEBUG call_sid received: '{call_sid}'")
-    print(f"🐛 DEBUG active_rooms keys: {list(active_rooms.keys())}")
-    print(f"🐛 DEBUG livekit_ready: {livekit_ready}")
-    print(f"🐛 DEBUG call_sid in active_rooms: {call_sid in active_rooms}")
+        print(f"📞 WebSocket connected for call: {call_sid}")
 
-    # NEW PIECE 2: Connect to LiveKit room if available
-    if livekit_ready and call_sid in active_rooms:
-        try:
+        # DEBUG: Log call_sid and active_rooms for diagnosis
+        print(f"🐛 DEBUG call_sid received: '{call_sid}'")
+        print(f"🐛 DEBUG active_rooms keys: {list(active_rooms.keys())}")
+        print(f"🐛 DEBUG livekit_ready: {livekit_ready}")
+        print(f"🐛 DEBUG call_sid in active_rooms: {call_sid in active_rooms}")
+
+        # NEW PIECE 2: Connect to LiveKit room if available
+        if livekit_ready and call_sid in active_rooms:
+            try:
             room_name = active_rooms[call_sid]
             livekit_url = os.getenv("LIVEKIT_URL")
             livekit_api_key = os.getenv("LIVEKIT_API_KEY")
@@ -240,6 +243,8 @@ async def twilio_stream(websocket: WebSocket):
 
     except Exception as e:
         print(f"❌ WebSocket error: {e}")
+        import traceback
+        traceback.print_exc()
     finally:
         # NEW PIECE 2: Cleanup LiveKit connection
         if livekit_connection:
