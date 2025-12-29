@@ -38,7 +38,7 @@ active_rooms = {}  # Track active LiveKit rooms per call
 livekit_api_client = None
 
 # Initialize LiveKit API client (NEW for Piece 2)
-def init_livekit():
+async def init_livekit_async():
     global livekit_api_client
     if not LIVEKIT_AVAILABLE:
         print("⚠️ LiveKit not available - skipping initialization")
@@ -62,7 +62,12 @@ def init_livekit():
         return False
 
 # Initialize LiveKit on startup
-livekit_ready = init_livekit()
+livekit_ready = False
+
+@app.on_event("startup")
+async def startup_event():
+    global livekit_ready
+    livekit_ready = await init_livekit_async()
 
 @app.post("/twilio-webhook")
 async def twilio_webhook(request: Request):
