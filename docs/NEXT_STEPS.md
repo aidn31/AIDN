@@ -1,32 +1,38 @@
 # AIDN Next Steps
 
-**Last Updated:** December 24, 2025 - 8:30 PM
+**Last Updated:** December 29, 2025 - 3:45 PM
 
 ---
 
-## 🎉 MAJOR MILESTONE: YC-DEMO-READY PLATFORM COMPLETE!
+## 🔄 CURRENT STATUS: PIECE-BY-PIECE AUDIO BRIDGE REBUILD
 
-**DASHBOARD TRANSFORMATION COMPLETED!** Static mockup has been transformed into a fully functional YC-ready prototype with complete business workflow implementation.
+**CLEAN REBUILD FROM DEC 24:** Reset from accumulated debug code to clean baseline. Building audio bridge systematically.
 
 ---
 
-## 🔥 IMMEDIATE (This Week - YC Demo Development)
-- [x] ✅ **Transform static dashboard into functional prototype** - COMPLETED!
-- [x] ✅ **Implement all navigation routes and pages** - COMPLETED!
-- [x] ✅ **Create working lead upload and management** - COMPLETED!
-- [x] ✅ **Build campaign creation and management system** - COMPLETED!
-- [x] ✅ **Add call history tracking and analytics** - COMPLETED!
-- [x] ✅ **Update voice agent with casual persona** - COMPLETED!
-- [x] ✅ **Implement script knowledge base system** - COMPLETED!
-- [x] ✅ **Update objection handlers with casual tone** - COMPLETED!
-- [x] ✅ **Test end-to-end call workflow with real phone numbers** - COMPLETED!
-- [x] ✅ **Validate casual persona with live test call setup** - COMPLETED!
-- [x] ✅ **Fix call initiation system to use real CallManager** - COMPLETED!
-- [ ] **Fix webhook configuration for production calls**
-- [ ] **Create compelling YC demo scenario (5-10 test leads)**
-- [ ] **Record sample calls demonstrating objection handling**
-- [ ] **Validate appointment booking flow in dashboard**
-- [ ] **Create YC demo script and talking points**
+## 🔥 IMMEDIATE (This Week - Audio Bridge Implementation)
+
+### **✅ PIECE 1: TWILIO WEBSOCKET CONNECTION - COMPLETE**
+- [x] ✅ **Reset to clean Dec 24 codebase (commit bc952a9)** - COMPLETED!
+- [x] ✅ **Create minimal WebSocket test (simple_websocket_test.py)** - COMPLETED!
+- [x] ✅ **Deploy to Railway with clean Dockerfile** - COMPLETED!
+- [x] ✅ **Test real phone call → WebSocket audio reception** - COMPLETED!
+- [x] ✅ **Verify audio package counting (640 packages confirmed)** - COMPLETED!
+
+### **🔄 PIECE 2: LIVEKIT CONNECTION - NEXT**
+- [ ] **Connect WebSocket audio to LiveKit voice agent**
+- [ ] **Test audio forwarding to AI system**
+- [ ] **Verify LiveKit receives and processes audio**
+
+### **⏳ PIECE 3: AUDIO CONVERSION - PENDING**
+- [ ] **Convert μ-law audio format to PCM**
+- [ ] **Implement audio format transformation**
+- [ ] **Test audio quality after conversion**
+
+### **⏳ PIECE 4: AUDIO RETURN - PENDING**
+- [ ] **Send AI-generated audio back to caller**
+- [ ] **Implement WebSocket audio transmission**
+- [ ] **Test complete audio loop (caller → AI → caller)**
 
 ---
 
