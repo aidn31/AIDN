@@ -130,6 +130,12 @@ async def twilio_stream(websocket: WebSocket):
 
     print(f"📞 WebSocket connected for call: {call_sid}")
 
+    # DEBUG: Log call_sid and active_rooms for diagnosis
+    print(f"🐛 DEBUG call_sid received: '{call_sid}'")
+    print(f"🐛 DEBUG active_rooms keys: {list(active_rooms.keys())}")
+    print(f"🐛 DEBUG livekit_ready: {livekit_ready}")
+    print(f"🐛 DEBUG call_sid in active_rooms: {call_sid in active_rooms}")
+
     # NEW PIECE 2: Connect to LiveKit room if available
     if livekit_ready and call_sid in active_rooms:
         try:
