@@ -56,6 +56,7 @@ async def twilio_stream(websocket: WebSocket):
         while True:
             # Get the next audio package from Twilio
             message = await websocket.receive_text()
+            print(f"📨 Raw message: {message}")
             data = json.loads(message)
 
             # Twilio sends different types of messages
