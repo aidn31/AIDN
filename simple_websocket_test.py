@@ -31,7 +31,7 @@ async def twilio_webhook(request: Request):
     twiml_response = """<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Start>
-        <Stream url="wss://YOUR_WEBHOOK_URL_HERE/twilio-stream" />
+        <Stream url="wss://aidn-production.up.railway.app/twilio-stream" />
     </Start>
     <Say>Connecting you to our test system. Please say hello.</Say>
     <Pause length="10"/>
