@@ -429,3 +429,23 @@ The WebSocket handler in `simple_websocket_test.py` is crashing silently. No deb
 The WebSocket handler should show debug logs but crashes before any print statements execute. The TwiML sends audio to the WebSocket, but the handler never processes it properly, preventing audio from reaching LiveKit.
 
 **CRITICAL**: Must revert to working state before attempting any further debugging.
+
+**December 30, 2025 - CALL_SID FIX COMPLETED**
+
+### ✅ Fixed: Twilio Parameter Passing
+- **Problem**: call_sid was 'unknown' because Twilio doesn't pass URL query params through WebSocket
+- **Solution**: Use `<Parameter>` tags in TwiML and extract call_sid from "start" event message
+- **Result**: Room lookup now succeeds, LiveKit connection established
+
+### 🔄 Current Issue: Audio Format Conversion
+- **Error**: "memoryview assignment: lvalue and rvalue have different structures"
+- **Location**: Audio conversion from Twilio μ-law to LiveKit AudioFrame
+- **Status**: LiveKit room connects, audio track publishes, but audio data format is wrong
+
+### Current State
+- ✅ Twilio calls work
+- ✅ WebSocket receives audio (918+ packages)
+- ✅ call_sid passes correctly via Parameter tags
+- ✅ LiveKit room created and connected
+- ✅ Audio track published to LiveKit
+- ❌ Audio format conversion fails (next fix needed)
