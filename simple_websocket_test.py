@@ -119,9 +119,9 @@ async def twilio_stream(websocket: WebSocket):
     """
     global audio_package_count
 
-    print("🚀 WebSocket connection attempt started")
+    print("🚀 WebSocket connection attempt started", flush=True)
     await websocket.accept()
-    print("🔌 Twilio connected to WebSocket!")
+    print("🔌 Twilio connected to WebSocket!", flush=True)
 
     # NEW PIECE 2: Get call_sid and connect to LiveKit room
     query_params = websocket.query_params
@@ -133,10 +133,10 @@ async def twilio_stream(websocket: WebSocket):
     print(f"📞 WebSocket connected for call: {call_sid}")
 
     # DEBUG: Log call_sid and active_rooms for diagnosis
-    print(f"🐛 DEBUG call_sid received: '{call_sid}'")
-    print(f"🐛 DEBUG active_rooms keys: {list(active_rooms.keys())}")
-    print(f"🐛 DEBUG livekit_ready: {livekit_ready}")
-    print(f"🐛 DEBUG call_sid in active_rooms: {call_sid in active_rooms}")
+    print(f"🐛 DEBUG call_sid received: '{call_sid}'", flush=True)
+    print(f"🐛 DEBUG active_rooms keys: {list(active_rooms.keys())}", flush=True)
+    print(f"🐛 DEBUG livekit_ready: {livekit_ready}", flush=True)
+    print(f"🐛 DEBUG call_sid in active_rooms: {call_sid in active_rooms}", flush=True)
 
     # NEW PIECE 2: Connect to LiveKit room if available
     if livekit_ready and call_sid in active_rooms:
