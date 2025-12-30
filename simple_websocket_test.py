@@ -231,15 +231,15 @@ async def twilio_stream(websocket: WebSocket):
 
                             # Log actual audio publishing (not just "ready")
                             if audio_package_count % 10 == 0:
-                                print(f"📦 Received {audio_package_count} audio packages")
-                                print(f"🎵 Audio published to LiveKit ({len(pcm_bytes)} PCM bytes)")
+                                print(f"📦 Received {audio_package_count} audio packages", flush=True)
+                                print(f"🎵 Audio published to LiveKit ({len(pcm_bytes)} PCM bytes)", flush=True)
 
                     except Exception as e:
                         print(f"❌ Error publishing audio to LiveKit: {e}")
                 else:
                     # PIECE 1 (UNCHANGED): Original logging when no LiveKit
                     if audio_package_count % 10 == 0:
-                        print(f"📦 Received {audio_package_count} audio packages")
+                        print(f"📦 Received {audio_package_count} audio packages", flush=True)
 
             elif event_type == 'stop':
                 print(f"🛑 Stream ended. Total packages: {audio_package_count}")
