@@ -219,14 +219,12 @@ async def twilio_stream(websocket: WebSocket):
                             pcm_bytes = audioop.ulaw2lin(ulaw_bytes, 2)
 
                             # Create audio frame with proper format for LiveKit
-                            audio_frame = rtc.AudioFrame.create(
+                            audio_frame = rtc.AudioFrame(
+                                data=pcm_bytes,
                                 sample_rate=8000,
                                 num_channels=1,
                                 samples_per_channel=len(pcm_bytes) // 2  # 2 bytes per sample (16-bit)
                             )
-
-                            # Copy PCM data to the frame
-                            audio_frame.data[:len(pcm_bytes)] = pcm_bytes
 
                             # Push audio frame to LiveKit
                             await audio_source.capture_frame(audio_frame)
