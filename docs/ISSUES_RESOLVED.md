@@ -5,6 +5,24 @@ This document tracks bugs and issues that have been fixed.
 
 ---
 
+## December 30, 2025
+
+### call_sid 'unknown' - room lookup failed
+**Problem:** call_sid was showing as 'unknown' causing room creation failures
+**Root Cause:** Twilio doesn't pass URL query parameters through WebSocket connections
+**Solution:** Use `<Parameter>` tags in TwiML, extract call_sid from "start" event message
+**Files Changed:** `simple_websocket_test.py`
+**Commit:** 82ec563
+
+### memoryview assignment error - AudioFrame creation
+**Problem:** "memoryview assignment: lvalue and rvalue have different structures"
+**Root Cause:** AudioFrame.create() + byte assignment incompatible structures
+**Solution:** Use AudioFrame constructor directly with `data=pcm_bytes` parameter
+**Files Changed:** `simple_websocket_test.py`
+**Commit:** fce84d9
+
+---
+
 ## Issue Template
 
 ### [DATE] - [Issue Title]
