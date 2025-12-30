@@ -119,6 +119,7 @@ async def twilio_stream(websocket: WebSocket):
     """
     global audio_package_count
 
+    print("🚀 WebSocket connection attempt started")
     await websocket.accept()
     print("🔌 Twilio connected to WebSocket!")
 
