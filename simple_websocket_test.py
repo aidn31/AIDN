@@ -101,7 +101,9 @@ async def twilio_webhook(request: Request):
     twiml_response = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Start>
-        <Stream url="wss://aidn-production.up.railway.app/twilio-stream?call_sid={call_sid}" />
+        <Stream url="wss://aidn-production.up.railway.app/twilio-stream">
+            <Parameter name="call_sid" value="{call_sid}" />
+        </Stream>
     </Start>
     <Say>Connecting you to our AI agent. Please wait a moment.</Say>
     <Pause length="15"/>
@@ -123,63 +125,14 @@ async def twilio_stream(websocket: WebSocket):
     await websocket.accept()
     print("🔌 Twilio connected to WebSocket!", flush=True)
 
-    # NEW PIECE 2: Get call_sid and connect to LiveKit room
-    query_params = websocket.query_params
-    call_sid = query_params.get('call_sid', 'unknown')
+    # NEW PIECE 2: call_sid will be extracted from the 'start' message
+    call_sid = None
     livekit_room = None
     livekit_connection = None
     audio_source = None
 
-    print(f"📞 WebSocket connected for call: {call_sid}")
+    print("📞 WebSocket connected, waiting for call_sid in start event...", flush=True)
 
-    # DEBUG: Log call_sid and active_rooms for diagnosis
-    print(f"🐛 DEBUG call_sid received: '{call_sid}'", flush=True)
-    print(f"🐛 DEBUG active_rooms keys: {list(active_rooms.keys())}", flush=True)
-    print(f"🐛 DEBUG livekit_ready: {livekit_ready}", flush=True)
-    print(f"🐛 DEBUG call_sid in active_rooms: {call_sid in active_rooms}", flush=True)
-
-    # NEW PIECE 2: Connect to LiveKit room if available
-    if livekit_ready and call_sid in active_rooms:
-        try:
-            room_name = active_rooms[call_sid]
-            livekit_url = os.getenv("LIVEKIT_URL")
-            livekit_api_key = os.getenv("LIVEKIT_API_KEY")
-            livekit_secret = os.getenv("LIVEKIT_SECRET")
-
-            # Create access token for the room
-            token = api.AccessToken(livekit_api_key, livekit_secret)
-            token.with_identity(f"twilio-caller-{call_sid}")
-            token.with_name("Twilio Caller")
-            token.with_grants(api.VideoGrants(
-                room_join=True,
-                room=room_name,
-                can_publish=True,
-                can_subscribe=True
-            ))
-            access_token = token.to_jwt()
-
-            # Connect to LiveKit room
-            livekit_room = rtc.Room()
-            await livekit_room.connect(livekit_url, access_token)
-            livekit_connection = livekit_room
-
-            # Create audio source for publishing caller audio
-            audio_source = rtc.AudioSource(
-                sample_rate=8000,  # Twilio sends 8kHz audio
-                num_channels=1     # Mono audio
-            )
-
-            # Publish audio track to the room
-            track = rtc.LocalAudioTrack.create_audio_track("caller-audio", audio_source)
-            options = rtc.TrackPublishOptions(source=rtc.TrackSource.SOURCE_MICROPHONE)
-            await livekit_room.local_participant.publish_track(track, options)
-
-            print(f"🔗 Connected to LiveKit room: {room_name}")
-            print(f"🎵 Audio track published: caller-audio")
-
-        except Exception as e:
-            print(f"❌ Failed to connect to LiveKit room: {e}")
-            livekit_connection = None
 
     try:
         while True:
@@ -191,7 +144,62 @@ async def twilio_stream(websocket: WebSocket):
             event_type = data.get('event')
 
             if event_type == 'start':
-                print("🎬 Stream started - audio packages coming soon!")
+                print("🎬 Stream started - extracting call_sid...", flush=True)
+
+                # Extract call_sid from start event parameters
+                custom_params = data.get("start", {}).get("customParameters", {})
+                call_sid = custom_params.get("call_sid", "unknown")
+
+                # DEBUG: Log call_sid and active_rooms for diagnosis
+                print(f"🐛 DEBUG call_sid from start event: '{call_sid}'", flush=True)
+                print(f"🐛 DEBUG active_rooms keys: {list(active_rooms.keys())}", flush=True)
+                print(f"🐛 DEBUG livekit_ready: {livekit_ready}", flush=True)
+                print(f"🐛 DEBUG call_sid in active_rooms: {call_sid in active_rooms}", flush=True)
+
+                # NOW do the LiveKit room connection since we have call_sid
+                if livekit_ready and call_sid in active_rooms:
+                    try:
+                        room_name = active_rooms[call_sid]
+                        livekit_url = os.getenv("LIVEKIT_URL")
+                        livekit_api_key = os.getenv("LIVEKIT_API_KEY")
+                        livekit_secret = os.getenv("LIVEKIT_SECRET")
+
+                        # Create access token for the room
+                        token = api.AccessToken(livekit_api_key, livekit_secret)
+                        token.with_identity(f"twilio-caller-{call_sid}")
+                        token.with_name("Twilio Caller")
+                        token.with_grants(api.VideoGrants(
+                            room_join=True,
+                            room=room_name,
+                            can_publish=True,
+                            can_subscribe=True
+                        ))
+                        access_token = token.to_jwt()
+
+                        # Connect to LiveKit room
+                        livekit_room = rtc.Room()
+                        await livekit_room.connect(livekit_url, access_token)
+                        livekit_connection = livekit_room
+
+                        # Create audio source for publishing caller audio
+                        audio_source = rtc.AudioSource(
+                            sample_rate=8000,  # Twilio sends 8kHz audio
+                            num_channels=1     # Mono audio
+                        )
+
+                        # Publish audio track to the room
+                        track = rtc.LocalAudioTrack.create_audio_track("caller-audio", audio_source)
+                        options = rtc.TrackPublishOptions(source=rtc.TrackSource.SOURCE_MICROPHONE)
+                        await livekit_room.local_participant.publish_track(track, options)
+
+                        print(f"🔗 Connected to LiveKit room: {room_name}", flush=True)
+                        print(f"🎵 Audio track published: caller-audio", flush=True)
+
+                    except Exception as e:
+                        print(f"❌ Failed to connect to LiveKit room: {e}", flush=True)
+                        livekit_connection = None
+                else:
+                    print(f"⚠️ LiveKit connection skipped: livekit_ready={livekit_ready}, call_sid_found={call_sid in active_rooms if call_sid != 'unknown' else False}", flush=True)
 
             elif event_type == 'media':
                 # PIECE 1 (UNCHANGED): Count the audio packages
