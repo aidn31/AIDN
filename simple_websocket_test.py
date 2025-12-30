@@ -120,74 +120,71 @@ async def twilio_stream(websocket: WebSocket):
     global audio_package_count
 
     await websocket.accept()
-    print("🔌 WebSocket accepted, starting handler...")
+    print("🔌 Twilio connected to WebSocket!")
+
+    # NEW PIECE 2: Get call_sid and connect to LiveKit room
+    query_params = websocket.query_params
+    call_sid = query_params.get('call_sid', 'unknown')
+    livekit_room = None
+    livekit_connection = None
+    audio_source = None
+
+    print(f"📞 WebSocket connected for call: {call_sid}")
+
+    # DEBUG: Log call_sid and active_rooms for diagnosis
+    print(f"🐛 DEBUG call_sid received: '{call_sid}'")
+    print(f"🐛 DEBUG active_rooms keys: {list(active_rooms.keys())}")
+    print(f"🐛 DEBUG livekit_ready: {livekit_ready}")
+    print(f"🐛 DEBUG call_sid in active_rooms: {call_sid in active_rooms}")
+
+    # NEW PIECE 2: Connect to LiveKit room if available
+    if livekit_ready and call_sid in active_rooms:
+        try:
+            room_name = active_rooms[call_sid]
+            livekit_url = os.getenv("LIVEKIT_URL")
+            livekit_api_key = os.getenv("LIVEKIT_API_KEY")
+            livekit_secret = os.getenv("LIVEKIT_SECRET")
+
+            # Create access token for the room
+            token = api.AccessToken(livekit_api_key, livekit_secret)
+            token.with_identity(f"twilio-caller-{call_sid}")
+            token.with_name("Twilio Caller")
+            token.with_grants(api.VideoGrants(
+                room_join=True,
+                room=room_name,
+                can_publish=True,
+                can_subscribe=True
+            ))
+            access_token = token.to_jwt()
+
+            # Connect to LiveKit room
+            livekit_room = rtc.Room()
+            await livekit_room.connect(livekit_url, access_token)
+            livekit_connection = livekit_room
+
+            # Create audio source for publishing caller audio
+            audio_source = rtc.AudioSource(
+                sample_rate=8000,  # Twilio sends 8kHz audio
+                num_channels=1     # Mono audio
+            )
+
+            # Publish audio track to the room
+            track = rtc.LocalAudioTrack.create_audio_track("caller-audio", audio_source)
+            options = rtc.TrackPublishOptions(source=rtc.TrackSource.SOURCE_MICROPHONE)
+            await livekit_room.local_participant.publish_track(track, options)
+
+            print(f"🔗 Connected to LiveKit room: {room_name}")
+            print(f"🎵 Audio track published: caller-audio")
+
+        except Exception as e:
+            print(f"❌ Failed to connect to LiveKit room: {e}")
+            livekit_connection = None
 
     try:
-        print("🔌 Twilio connected to WebSocket!")
-
-        # NEW PIECE 2: Get call_sid and connect to LiveKit room
-        query_params = websocket.query_params
-        call_sid = query_params.get('call_sid', 'unknown')
-        livekit_room = None
-        livekit_connection = None
-        audio_source = None
-
-        print(f"📞 WebSocket connected for call: {call_sid}")
-
-        # DEBUG: Log call_sid and active_rooms for diagnosis
-        print(f"🐛 DEBUG call_sid received: '{call_sid}'")
-        print(f"🐛 DEBUG active_rooms keys: {list(active_rooms.keys())}")
-        print(f"🐛 DEBUG livekit_ready: {livekit_ready}")
-        print(f"🐛 DEBUG call_sid in active_rooms: {call_sid in active_rooms}")
-
-        # NEW PIECE 2: Connect to LiveKit room if available
-        if livekit_ready and call_sid in active_rooms:
-            try:
-                room_name = active_rooms[call_sid]
-                livekit_url = os.getenv("LIVEKIT_URL")
-                livekit_api_key = os.getenv("LIVEKIT_API_KEY")
-                livekit_secret = os.getenv("LIVEKIT_SECRET")
-
-                # Create access token for the room
-                token = api.AccessToken(livekit_api_key, livekit_secret)
-                token.with_identity(f"twilio-caller-{call_sid}")
-                token.with_name("Twilio Caller")
-                token.with_grants(api.VideoGrants(
-                    room_join=True,
-                    room=room_name,
-                    can_publish=True,
-                    can_subscribe=True
-                ))
-                access_token = token.to_jwt()
-
-                # Connect to LiveKit room
-                livekit_room = rtc.Room()
-                await livekit_room.connect(livekit_url, access_token)
-                livekit_connection = livekit_room
-
-                # Create audio source for publishing caller audio
-                audio_source = rtc.AudioSource(
-                    sample_rate=8000,  # Twilio sends 8kHz audio
-                    num_channels=1     # Mono audio
-                )
-
-                # Publish audio track to the room
-                track = rtc.LocalAudioTrack.create_audio_track("caller-audio", audio_source)
-                options = rtc.TrackPublishOptions(source=rtc.TrackSource.SOURCE_MICROPHONE)
-                await livekit_room.local_participant.publish_track(track, options)
-
-                print(f"🔗 Connected to LiveKit room: {room_name}")
-                print(f"🎵 Audio track published: caller-audio")
-
-            except Exception as e:
-                print(f"❌ Failed to connect to LiveKit room: {e}")
-                livekit_connection = None
-
-        try:
-            while True:
-                # Get the next audio package from Twilio (UNCHANGED)
-                message = await websocket.receive_text()
-                data = json.loads(message)
+        while True:
+            # Get the next audio package from Twilio (UNCHANGED)
+            message = await websocket.receive_text()
+            data = json.loads(message)
 
             # Twilio sends different types of messages (UNCHANGED)
             event_type = data.get('event')
@@ -243,8 +240,6 @@ async def twilio_stream(websocket: WebSocket):
 
     except Exception as e:
         print(f"❌ WebSocket error: {e}")
-        import traceback
-        traceback.print_exc()
     finally:
         # NEW PIECE 2: Cleanup LiveKit connection
         if livekit_connection:
