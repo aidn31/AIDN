@@ -157,6 +157,12 @@ async def forward_agent_audio_to_twilio(
             # Convert PCM (16-bit) to μ-law for Twilio
             ulaw_data = audioop.lin2ulaw(pcm_data, 2)
 
+            # Debug: Log raw audio data on first frame
+            if frame_count == 1:
+                pcm_sample = int.from_bytes(pcm_data[:2], 'little', signed=True)
+                print(f"📤 First PCM sample value: {pcm_sample}", flush=True)
+                print(f"📤 First μ-law bytes (hex): {ulaw_data[:10].hex()}", flush=True)
+
             # Base64 encode for Twilio
             payload = base64.b64encode(ulaw_data).decode('utf-8')
 
