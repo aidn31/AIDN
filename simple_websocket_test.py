@@ -7,7 +7,7 @@ PIECE 2: Twilio WebSocket to LiveKit Audio Bridge
 PIECE 1 (STILL WORKING): Connect to Twilio's audio stream and count packages.
 PIECE 2 (COMPLETE): Convert audio format and publish to LiveKit room for voice agent processing.
 
-NO return audio yet (Piece 4).
+PIECE 4 (NEW): Return audio from agent back to Twilio caller.
 """
 
 import json
@@ -113,11 +113,57 @@ async def twilio_webhook(request: Request):
     return Response(content=twiml_response, media_type="text/xml")
 
 
+async def forward_agent_audio_to_twilio(
+    audio_stream: rtc.AudioStream,
+    websocket: WebSocket,
+    stream_sid: str,
+    call_sid: str
+):
+    """
+    PIECE 4: Forward agent audio from LiveKit back to Twilio caller.
+    Converts PCM audio to μ-law and sends via WebSocket.
+    """
+    frame_count = 0
+    try:
+        async for frame_event in audio_stream:
+            frame = frame_event.frame
+            frame_count += 1
+
+            # Get PCM data from the audio frame
+            pcm_data = bytes(frame.data)
+
+            # Convert PCM (16-bit) to μ-law for Twilio
+            ulaw_data = audioop.lin2ulaw(pcm_data, 2)
+
+            # Base64 encode for Twilio
+            payload = base64.b64encode(ulaw_data).decode('utf-8')
+
+            # Send to Twilio in expected format
+            twilio_message = {
+                "event": "media",
+                "streamSid": stream_sid,
+                "media": {
+                    "payload": payload
+                }
+            }
+
+            await websocket.send_text(json.dumps(twilio_message))
+
+            if frame_count % 50 == 0:
+                print(f"🔊 Sent {frame_count} agent audio frames to Twilio", flush=True)
+
+    except Exception as e:
+        print(f"❌ Agent audio forwarding error: {e}", flush=True)
+    finally:
+        print(f"🔇 Agent audio forwarding ended. Total frames: {frame_count}", flush=True)
+
+
 @app.websocket("/twilio-stream")
 async def twilio_stream(websocket: WebSocket):
     """
     PIECE 1 (UNCHANGED): Count audio packages from Twilio
     PIECE 2 (NEW): Forward audio to LiveKit room
+    PIECE 4 (NEW): Return agent audio to Twilio caller
     """
     global audio_package_count
 
@@ -127,9 +173,11 @@ async def twilio_stream(websocket: WebSocket):
 
     # NEW PIECE 2: call_sid will be extracted from the 'start' message
     call_sid = None
+    stream_sid = None  # PIECE 4: Needed for return audio
     livekit_room = None
     livekit_connection = None
     audio_source = None
+    agent_audio_task = None  # PIECE 4: Task for forwarding agent audio
 
     print("📞 WebSocket connected, waiting for call_sid in start event...", flush=True)
 
@@ -144,7 +192,11 @@ async def twilio_stream(websocket: WebSocket):
             event_type = data.get('event')
 
             if event_type == 'start':
-                print("🎬 Stream started - extracting call_sid...", flush=True)
+                print("🎬 Stream started - extracting call_sid and streamSid...", flush=True)
+
+                # PIECE 4: Extract streamSid from start event (needed for return audio)
+                stream_sid = data.get("start", {}).get("streamSid")
+                print(f"🆔 Stream SID: {stream_sid}", flush=True)
 
                 # Extract call_sid from start event parameters
                 custom_params = data.get("start", {}).get("customParameters", {})
@@ -194,6 +246,31 @@ async def twilio_stream(websocket: WebSocket):
 
                         print(f"🔗 Connected to LiveKit room: {room_name}", flush=True)
                         print(f"🎵 Audio track published: caller-audio", flush=True)
+
+                        # PIECE 4: Set up handler for agent audio (return path)
+                        @livekit_room.on("track_subscribed")
+                        def on_track_subscribed(
+                            track: rtc.Track,
+                            publication: rtc.RemoteTrackPublication,
+                            participant: rtc.RemoteParticipant
+                        ):
+                            nonlocal agent_audio_task
+                            if track.kind == rtc.TrackKind.KIND_AUDIO:
+                                print(f"🎧 Agent audio track subscribed from {participant.identity}", flush=True)
+
+                                # Create audio stream from the track
+                                audio_stream = rtc.AudioStream(track)
+
+                                # Start forwarding agent audio to Twilio
+                                agent_audio_task = asyncio.create_task(
+                                    forward_agent_audio_to_twilio(
+                                        audio_stream,
+                                        websocket,
+                                        stream_sid,
+                                        call_sid
+                                    )
+                                )
+                                print(f"🔊 Started agent audio forwarding to Twilio", flush=True)
 
                     except Exception as e:
                         print(f"❌ Failed to connect to LiveKit room: {e}", flush=True)
@@ -248,6 +325,15 @@ async def twilio_stream(websocket: WebSocket):
     except Exception as e:
         print(f"❌ WebSocket error: {e}")
     finally:
+        # PIECE 4: Cancel agent audio forwarding task
+        if agent_audio_task:
+            agent_audio_task.cancel()
+            try:
+                await agent_audio_task
+            except asyncio.CancelledError:
+                pass
+            print("🔇 Agent audio task cancelled", flush=True)
+
         # NEW PIECE 2: Cleanup LiveKit connection
         if livekit_connection:
             try:
