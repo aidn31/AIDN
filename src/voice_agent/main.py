@@ -178,8 +178,20 @@ async def entrypoint(ctx: JobContext):
     
     # Start the session
     logger.info("🚀 Starting AIDN voice agent session...")
-    await session.start(room=ctx.room, agent=agent)
-    
+    try:
+        await session.start(room=ctx.room, agent=agent)
+        logger.info("✅ Session started successfully")
+
+        # Log published tracks
+        local_participant = ctx.room.local_participant
+        logger.info(f"🎤 Local participant: {local_participant.identity}")
+        for track_pub in local_participant.track_publications.values():
+            logger.info(f"📢 Published track: {track_pub.track.name if track_pub.track else 'None'}, kind: {track_pub.kind}")
+    except Exception as e:
+        logger.error(f"❌ Session start failed: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+
     # Keep the session alive until the room closes
     logger.info("🎙️ Voice agent is now active on the call")
     
