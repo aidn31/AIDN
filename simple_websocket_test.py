@@ -160,6 +160,10 @@ async def forward_agent_audio_to_twilio(
             # Base64 encode for Twilio
             payload = base64.b64encode(ulaw_data).decode('utf-8')
 
+            # Debug: Log first message details
+            if frame_count == 1:
+                print(f"📤 First Twilio message - streamSid: {stream_sid}, payload_len: {len(payload)}", flush=True)
+
             # Send to Twilio in expected format
             twilio_message = {
                 "event": "media",
