@@ -5,6 +5,7 @@ AIDN Voice Agent
 Main voice agent for insurance lead calling and appointment booking.
 """
 
+import asyncio
 import logging
 from datetime import datetime, timedelta
 from typing import List, Optional
@@ -275,6 +276,10 @@ NEVER discuss specific policy details or give insurance advice. Your only job is
     async def on_enter(self):
         """Called when agent becomes active."""
         logger.info("🎤 CRITICAL: on_enter() method called - about to execute immediate greeting")
+
+        # Wait for audio track to be ready
+        await asyncio.sleep(1)
+        logger.info("⏳ Waited 1s for audio track initialization")
 
         try:
             # Force immediate greeting without waiting for caller speech
