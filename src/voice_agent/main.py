@@ -176,17 +176,20 @@ async def entrypoint(ctx: JobContext):
     # Give the bridge time to publish its audio track
     await asyncio.sleep(1)
     
+    # Set up track published listener BEFORE starting session
+    @ctx.room.on("track_published")
+    def on_local_track_published(publication, participant):
+        logger.info(f"📢 Track published: {publication.sid}, kind: {publication.kind}, by: {participant.identity}")
+
     # Start the session
     logger.info("🚀 Starting AIDN voice agent session...")
     try:
         await session.start(room=ctx.room, agent=agent)
         logger.info("✅ Session started successfully")
 
-        # Log published tracks
+        # Log local participant info
         local_participant = ctx.room.local_participant
         logger.info(f"🎤 Local participant: {local_participant.identity}")
-        for track_pub in local_participant.track_publications.values():
-            logger.info(f"📢 Published track: {track_pub.track.name if track_pub.track else 'None'}, kind: {track_pub.kind}")
     except Exception as e:
         logger.error(f"❌ Session start failed: {e}")
         import traceback
