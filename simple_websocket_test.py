@@ -280,6 +280,8 @@ async def twilio_stream(websocket: WebSocket):
                         print(f"🎵 Audio track published: caller-audio", flush=True)
 
                         # PIECE 4: Set up handler for agent audio (return path)
+                        our_identity = f"twilio-caller-{call_sid}"
+
                         @livekit_room.on("track_subscribed")
                         def on_track_subscribed(
                             track: rtc.Track,
@@ -287,6 +289,12 @@ async def twilio_stream(websocket: WebSocket):
                             participant: rtc.RemoteParticipant
                         ):
                             nonlocal agent_audio_task
+
+                            # Skip our own tracks - only subscribe to agent audio
+                            if participant.identity == our_identity:
+                                print(f"⏭️ Skipping own track from {participant.identity}", flush=True)
+                                return
+
                             if track.kind == rtc.TrackKind.KIND_AUDIO:
                                 print(f"🎧 Agent audio track subscribed from {participant.identity}", flush=True)
 
