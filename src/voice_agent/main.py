@@ -14,7 +14,8 @@ from uuid import UUID
 
 from dotenv import load_dotenv
 from livekit import agents
-from livekit.agents import WorkerOptions, cli, JobContext, JobRequest, room_io
+from livekit.agents import WorkerOptions, cli, JobContext, JobRequest
+from livekit.agents.voice import room_io
 
 from .aidn_agent import AIDNVoiceAgent, create_aidn_session
 from ..shared.database import DatabaseManager, LeadRepository, AgentRepository
