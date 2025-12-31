@@ -121,9 +121,11 @@ async def forward_agent_audio_to_twilio(
 ):
     """
     PIECE 4: Forward agent audio from LiveKit back to Twilio caller.
-    Converts PCM audio to μ-law and sends via WebSocket.
+    Resamples to 8kHz and converts PCM audio to μ-law.
     """
     frame_count = 0
+    resample_state = None  # State for audioop.ratecv
+
     try:
         async for frame_event in audio_stream:
             frame = frame_event.frame
@@ -131,6 +133,22 @@ async def forward_agent_audio_to_twilio(
 
             # Get PCM data from the audio frame
             pcm_data = bytes(frame.data)
+            sample_rate = frame.sample_rate
+
+            # Resample to 8kHz if needed (Twilio requires 8kHz)
+            if sample_rate != 8000:
+                # audioop.ratecv(fragment, width, nchannels, inrate, outrate, state)
+                pcm_data, resample_state = audioop.ratecv(
+                    pcm_data,
+                    2,              # 2 bytes per sample (16-bit)
+                    1,              # mono
+                    sample_rate,    # input rate (e.g., 48000)
+                    8000,           # output rate (Twilio expects 8kHz)
+                    resample_state
+                )
+
+                if frame_count == 1:
+                    print(f"🔄 Resampling agent audio: {sample_rate}Hz → 8000Hz", flush=True)
 
             # Convert PCM (16-bit) to μ-law for Twilio
             ulaw_data = audioop.lin2ulaw(pcm_data, 2)
