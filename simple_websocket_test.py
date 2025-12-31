@@ -131,6 +131,10 @@ async def forward_agent_audio_to_twilio(
             frame = frame_event.frame
             frame_count += 1
 
+            # Debug: Log first frame details
+            if frame_count == 1:
+                print(f"🔊 Agent audio - sample_rate: {frame.sample_rate}Hz, channels: {frame.num_channels}, data_len: {len(bytes(frame.data))}", flush=True)
+
             # Get PCM data from the audio frame
             pcm_data = bytes(frame.data)
             sample_rate = frame.sample_rate
