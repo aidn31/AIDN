@@ -14,7 +14,7 @@ from uuid import UUID
 
 from dotenv import load_dotenv
 from livekit import agents
-from livekit.agents import WorkerOptions, cli, JobContext, JobRequest
+from livekit.agents import WorkerOptions, cli, JobContext, JobRequest, room_io
 
 from .aidn_agent import AIDNVoiceAgent, create_aidn_session
 from ..shared.database import DatabaseManager, LeadRepository, AgentRepository
@@ -184,7 +184,13 @@ async def entrypoint(ctx: JobContext):
     # Start the session
     logger.info("🚀 Starting AIDN voice agent session...")
     try:
-        await session.start(room=ctx.room, agent=agent)
+        await session.start(
+            room=ctx.room,
+            agent=agent,
+            room_options=room_io.RoomOptions(
+                audio_output=True,
+            ),
+        )
         logger.info("✅ Session started successfully")
 
         # Log local participant info
