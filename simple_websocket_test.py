@@ -139,6 +139,12 @@ async def forward_agent_audio_to_twilio(
             pcm_data = bytes(frame.data)
             sample_rate = frame.sample_rate
 
+            # Debug: Check amplitude of first 10 frames
+            if frame_count <= 10:
+                if len(pcm_data) >= 2:
+                    max_val = max(abs(int.from_bytes(pcm_data[i:i+2], 'little', signed=True)) for i in range(0, min(100, len(pcm_data)), 2))
+                    print(f"📊 Frame {frame_count} max amplitude: {max_val}", flush=True)
+
             # Resample to 8kHz if needed (Twilio requires 8kHz)
             if sample_rate != 8000:
                 # audioop.ratecv(fragment, width, nchannels, inrate, outrate, state)
