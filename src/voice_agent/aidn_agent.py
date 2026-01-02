@@ -5,15 +5,12 @@ AIDN Voice Agent
 Main voice agent for insurance lead calling and appointment booking.
 """
 
-import asyncio
 import logging
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import Optional
 from uuid import UUID
 
-from livekit import agents
-from livekit.agents import Agent, AgentSession, RunContext, function_tool
-from livekit.plugins import deepgram, openai
+from livekit.agents import Agent, RunContext, function_tool
 
 from ..shared.database import DatabaseManager, LeadRepository, AppointmentRepository
 from ..shared.models import Lead, AppointmentSlot
@@ -274,24 +271,8 @@ NEVER discuss specific policy details or give insurance advice. Your only job is
             return "I'll make sure someone calls you back soon."
 
     async def on_enter(self):
-        """Called when agent becomes active."""
-        logger.info("🎤 CRITICAL: on_enter() method called - about to execute immediate greeting")
-
-        # Wait for audio track to be ready
-        await asyncio.sleep(1)
-        logger.info("⏳ Waited 1s for audio track initialization")
-
-        try:
-            # Force immediate greeting without waiting for caller speech
-            logger.info("🗣️ EXECUTING: session.say() for immediate greeting")
-            await self.session.say("Hello? This is AIDN calling. I'm here about the insurance information you requested. Can you hear me okay?")
-            logger.info("✅ COMPLETED: session.say() executed successfully")
-        except Exception as e:
-            logger.error(f"❌ ERROR in session.say(): {e}")
-            import traceback
-            logger.error(f"📋 Full traceback:\n{traceback.format_exc()}")
-
-        logger.info("AIDN Voice Agent session started")
+        """Called when agent becomes active. Greeting is handled in main.py after call answers."""
+        logger.info("🎤 AIDN Voice Agent session started")
 
     async def on_exit(self):
         """Called when agent session ends."""
@@ -299,37 +280,4 @@ NEVER discuss specific policy details or give insurance advice. Your only job is
 
         # Log call completion
         if self.current_lead:
-            # This would typically be handled by the call manager
             logger.info(f"Call completed for lead {self.current_lead.id}")
-
-
-async def create_aidn_session(db_manager: DatabaseManager) -> AgentSession:
-    """Create AIDN voice agent session with proper configuration."""
-
-    # Configure the voice pipeline optimized for phone calls
-    session = AgentSession(
-        # Speech-to-Text - optimized for phone quality audio
-        stt=deepgram.STT(
-            model="nova-2",
-            language="en-US",
-            smart_format=True,
-            interim_results=True
-        ),
-
-        # Large Language Model - fast and cost-effective
-        llm=openai.LLM(
-            model="gpt-4o-mini",
-            temperature=0.7,  # Slightly more conversational
-        ),
-
-        # Text-to-Speech - natural voice for insurance context
-        tts=openai.TTS(
-            voice="echo",  # Professional but warm voice
-            speed=0.9      # Slightly slower for casual persona
-        ),
-
-        # Turn detection for natural conversation
-        turn_detection="semantic"
-    )
-
-    return session
