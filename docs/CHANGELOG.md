@@ -1,5 +1,41 @@
 # AIDN Changelog
 
+## [2.1.0] - January 3, 2026
+
+### NEW: Aiden Persona & Low-Latency Voice
+
+Complete voice agent persona rebuild with optimized latency settings.
+
+#### Added
+- **Aiden Persona** - Full conversational persona for insurance appointment setting
+  - Casual, warm personality ("gonna", "ya", "wanna", "lemme")
+  - Complete conversation flow from greeting to appointment tie-down
+  - 12 objection handling scripts (not interested, what is it, scam, busy, etc.)
+  - Decision maker confirmation flow
+  - 5-digit confirmation code system per call
+  - 11 guardrails to prevent unwanted behaviors
+- **Cartesia TTS** - Low-latency text-to-speech (~100-150ms vs 300-500ms OpenAI)
+- **Optimized VAD Settings** - Faster turn detection (300ms silence threshold)
+- **Dynamic System Prompt** - `build_system_prompt()` injects lead/agent data at runtime
+- **Confirmation Code Generator** - `generate_confirmation_code()` creates random 5-digit codes
+- **Test Call Script** - `scripts/test_call.py` for easy call dispatching
+
+#### Changed
+- `src/voice_agent/aidn_agent.py` - Complete rewrite with Aiden persona (~400 lines)
+- `src/voice_agent/main.py` - Cartesia TTS, optimized VAD, Aiden greeting
+- `src/voice_agent/script_knowledge_base.py` - Cleared for persona rebuild
+- `src/voice_agent/objection_handler.py` - Cleared (LLM handles via persona)
+- `.env` - Added `CARTESIA_API_KEY`
+
+#### Latency Improvements
+| Component | Before | After |
+|-----------|--------|-------|
+| TTS | OpenAI (~300-500ms) | Cartesia (~100-150ms) |
+| VAD silence | 550ms | 300ms |
+| Turn detection | Default | Optimized |
+
+---
+
 ## [2.0.0] - January 2, 2026
 
 ### MAJOR: LiveKit SIP + Telnyx Migration

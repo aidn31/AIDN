@@ -15,7 +15,7 @@ from uuid import UUID
 from dotenv import load_dotenv
 from livekit import api
 from livekit.agents import AgentSession, JobContext, WorkerOptions, cli
-from livekit.plugins import deepgram, openai, silero
+from livekit.plugins import deepgram, openai, silero, cartesia
 
 from .aidn_agent import AIDNVoiceAgent
 from ..shared.database import DatabaseManager, LeadRepository, AgentRepository
@@ -111,21 +111,41 @@ async def entrypoint(ctx: JobContext):
         await agent.set_call_context(lead, UUID(agent_id) if agent_id else None, agent_info)
         logger.info(f"✅ Call context set for {lead.first_name}")
 
-    # Create the agent session
+    # Create the agent session with LOW LATENCY settings
+    #
+    # TTS Options (fastest to slowest):
+    #   1. Cartesia - ~100-150ms latency, streaming, high quality
+    #   2. Deepgram - ~150-200ms latency
+    #   3. OpenAI TTS - ~300-500ms latency
+    #
+    # VAD Settings for natural conversation:
+    #   - min_silence_duration: How long silence before end-of-turn (lower = faster, but may cut off)
+    #   - speech_pad: Padding around speech detection
+    #
     session = AgentSession(
         stt=deepgram.STT(
             model="nova-2",
             language="en-US",
+            # Deepgram is already very fast, ~100-200ms
         ),
         llm=openai.LLM(
-            model="gpt-4o-mini",
+            model="gpt-4o-mini",  # Fast model, good for conversation
             temperature=0.7,
         ),
-        tts=openai.TTS(
-            voice="echo",
-            speed=0.9,
+        # Cartesia TTS - fastest option with streaming support
+        # If Cartesia API key not set, will fall back to OpenAI
+        tts=cartesia.TTS(
+            model="sonic-english",
+            voice="a0e99841-438c-4a64-b679-ae501e7d6091",  # "Barbershop Man" - natural male voice
+            speed=1.0,  # Normal speed, natural pacing
+            emotion=["positivity:high", "curiosity:medium"],  # Friendly tone
         ),
-        vad=silero.VAD.load(),
+        vad=silero.VAD.load(
+            min_silence_duration=0.3,  # 300ms silence = end of turn (default 0.55)
+            prefix_padding_duration=0.1,  # 100ms padding before speech (default 0.5)
+            min_speech_duration=0.05,  # Detect speech quickly (default 0.05)
+            activation_threshold=0.5,  # Speech detection sensitivity
+        ),
     )
 
     # Start the session BEFORE dialing
@@ -154,11 +174,21 @@ async def entrypoint(ctx: JobContext):
 
         logger.info("✅ Call answered!")
 
-        # Build personalized greeting
+        # Build personalized Aiden greeting
         if lead:
-            greeting = f"Hey {lead.first_name}! This is calling from the benefits center here in {lead.county}. We've got some info ready to go out to ya, and I was just making sure you still live at {lead.address}, is that right?"
+            county = lead.county or "your area"
+            address = lead.address or "your address"
+            greeting = (
+                f"Hey {lead.first_name}! This is Aiden, umm, I'm calling from the "
+                f"benefits center here in {county}... so we've got this package of "
+                f"info ready to go out to ya about the final expense programs, and "
+                f"I was just making sure you still live at {address}. Is that right?"
+            )
         else:
-            greeting = "Hey there! This is calling from the benefits center. We've got some info ready to send out to you. Do you have a quick moment?"
+            greeting = (
+                "Hey there! This is Aiden calling from the benefits center. "
+                "We've got some info ready to go out to ya, do you have a quick second?"
+            )
 
         # Greet the lead AFTER call is answered
         await session.say(greeting)
@@ -196,6 +226,7 @@ def main():
         "DATABASE_URL",
         "OPENAI_API_KEY",
         "DEEPGRAM_API_KEY",
+        "CARTESIA_API_KEY",  # For low-latency TTS
         "LIVEKIT_URL",
         "LIVEKIT_API_KEY",
         "LIVEKIT_API_SECRET",

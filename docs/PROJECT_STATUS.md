@@ -1,21 +1,23 @@
 # AIDN Project Status
 
-**Last Updated:** January 2, 2026
+**Last Updated:** January 3, 2026
 **Status:** PRODUCTION READY
 
 ---
 
-## Current State: LiveKit SIP + Telnyx Working
+## Current State: Aiden Persona Live
 
-Successfully migrated from custom Twilio bridge to LiveKit SIP with Telnyx. Outbound calls are working with full voice agent conversation.
+Full Aiden persona implemented with low-latency voice. Outbound calls working with complete appointment setting flow.
 
 ### What's Working
 - ✅ Outbound calls via LiveKit SIP + Telnyx
-- ✅ Voice agent answers and greets caller
-- ✅ Real-time speech-to-text (Deepgram)
+- ✅ **Aiden persona** - casual, friendly appointment setter
+- ✅ Real-time speech-to-text (Deepgram Nova-2)
 - ✅ LLM responses (GPT-4o-mini)
-- ✅ Text-to-speech (OpenAI TTS)
-- ✅ Casual persona and objection handling
+- ✅ **Low-latency TTS (Cartesia)** - ~100-150ms
+- ✅ Full objection handling (12 scenarios)
+- ✅ Appointment tie-down flow with confirmation codes
+- ✅ Decision maker verification
 - ✅ React dashboard
 - ✅ FastAPI backend
 - ✅ PostgreSQL database
@@ -36,6 +38,15 @@ Successfully migrated from custom Twilio bridge to LiveKit SIP with Telnyx. Outb
 
 ## Recent Milestones
 
+### January 3, 2026 - Aiden Persona & Low-Latency Voice
+- Implemented full Aiden persona (~190 line system prompt)
+- Switched to Cartesia TTS for ~100-150ms latency
+- Optimized VAD settings (300ms silence threshold)
+- Added 12 objection handling scenarios
+- Added appointment tie-down flow with confirmation codes
+- Added decision maker verification
+- Created test call script
+
 ### January 2, 2026 - LiveKit SIP Migration Complete
 - Deleted 3,700+ lines of custom bridge code
 - Removed Twilio dependency
@@ -44,11 +55,10 @@ Successfully migrated from custom Twilio bridge to LiveKit SIP with Telnyx. Outb
 - Successfully tested multiple calls
 
 ### Key Commits
+- `7405c8b` - LiveKit SIP + Telnyx migration complete
 - `cae4a1d` - Backup before migration
 - `965efb1` - Phase 2: Delete old bridge
 - `ac5c2a5` - Phase 3: Rewrite agent code
-- `7c6fced` - Phase 4: Update env vars
-- `4ddc8b6` - Phase 5: Final cleanup
 
 ---
 
@@ -94,6 +104,7 @@ asyncio.run(call())
 DATABASE_URL=postgresql://...
 OPENAI_API_KEY=sk-...
 DEEPGRAM_API_KEY=...
+CARTESIA_API_KEY=sk_car_...    # For low-latency TTS
 LIVEKIT_URL=wss://your-project.livekit.cloud
 LIVEKIT_API_KEY=...
 LIVEKIT_API_SECRET=...
