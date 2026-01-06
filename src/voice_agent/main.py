@@ -10,6 +10,7 @@ import asyncio
 import json
 import logging
 import os
+import time
 from uuid import UUID
 
 from dotenv import load_dotenv
@@ -17,7 +18,7 @@ from livekit import api
 from livekit.agents import AgentSession, JobContext, WorkerOptions, cli
 from livekit.plugins import deepgram, openai, silero, cartesia
 
-from .aidn_agent import AIDNVoiceAgent
+from .aidn_agent_v2 import AIDNVoiceAgent
 from ..shared.database import DatabaseManager, LeadRepository, AgentRepository
 
 # Load environment variables
@@ -111,7 +112,7 @@ async def entrypoint(ctx: JobContext):
         await agent.set_call_context(lead, UUID(agent_id) if agent_id else None, agent_info)
         logger.info(f"✅ Call context set for {lead.first_name}")
 
-    # Create the agent session with LOW LATENCY settings
+    # Create the agent session with ULTRA LOW LATENCY settings
     #
     # TTS Options (fastest to slowest):
     #   1. Cartesia - ~100-150ms latency, streaming, high quality
@@ -122,31 +123,52 @@ async def entrypoint(ctx: JobContext):
     #   - min_silence_duration: How long silence before end-of-turn (lower = faster, but may cut off)
     #   - speech_pad: Padding around speech detection
     #
+    # Endpointing delays (KEY FOR LATENCY):
+    #   - min_endpointing_delay: How long after speech stops before responding (default 0.5s)
+    #   - max_endpointing_delay: Maximum wait before forcing response (default 3.0s)
+    #
     session = AgentSession(
         stt=deepgram.STT(
             model="nova-2",
             language="en-US",
-            # Deepgram is already very fast, ~100-200ms
+            endpointing_ms=25,  # 25ms endpointing (fast turn detection)
         ),
         llm=openai.LLM(
             model="gpt-4o-mini",  # Fast model, good for conversation
             temperature=0.7,
         ),
         # Cartesia TTS - fastest option with streaming support
-        # If Cartesia API key not set, will fall back to OpenAI
         tts=cartesia.TTS(
-            model="sonic-english",
-            voice="a0e99841-438c-4a64-b679-ae501e7d6091",  # "Barbershop Man" - natural male voice
+            model="sonic-2-2025-03-07",
+            voice="a5136bf9-224c-4d76-b823-52bd5efcffcc",
             speed=1.0,  # Normal speed, natural pacing
             emotion=["positivity:high", "curiosity:medium"],  # Friendly tone
         ),
         vad=silero.VAD.load(
-            min_silence_duration=0.3,  # 300ms silence = end of turn (default 0.55)
-            prefix_padding_duration=0.1,  # 100ms padding before speech (default 0.5)
-            min_speech_duration=0.05,  # Detect speech quickly (default 0.05)
-            activation_threshold=0.5,  # Speech detection sensitivity
+            min_silence_duration=0.2,  # 200ms silence = end of turn (was 0.3)
+            prefix_padding_duration=0.05,  # 50ms padding (was 0.1)
+            min_speech_duration=0.05,  # Detect speech quickly
+            activation_threshold=0.4,  # Slightly more sensitive (was 0.5)
         ),
+        # KEY LATENCY SETTINGS - respond faster after user stops speaking
+        min_endpointing_delay=0.1,  # 100ms min delay (default 0.5s)
+        max_endpointing_delay=0.8,  # 800ms max delay (default 3.0s)
     )
+
+    # Add timing metrics for debugging latency
+    speech_end_time = None
+
+    @session.on("user_speech_committed")
+    def on_user_speech_committed(msg):
+        nonlocal speech_end_time
+        speech_end_time = time.time()
+        logger.info(f"⏱️ USER_SPEECH_END: {msg.transcript[:50]}...")
+
+    @session.on("agent_started_speaking")
+    def on_agent_started():
+        if speech_end_time:
+            latency = (time.time() - speech_end_time) * 1000
+            logger.info(f"⏱️ RESPONSE_LATENCY: {latency:.0f}ms (speech_end -> agent_start)")
 
     # Start the session BEFORE dialing
     await session.start(room=ctx.room, agent=agent)

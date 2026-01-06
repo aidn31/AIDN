@@ -1,5 +1,49 @@
 # AIDN Changelog
 
+## [2.2.0] - January 5, 2026
+
+### NEW: 3-Layer RAG Architecture for Low Latency
+
+Complete restructure of voice agent for significantly reduced latency using slim prompt + RAG.
+
+#### Added
+- **`core_prompt.py`** - Slim system prompt (~66 lines, ~1200 tokens vs ~5000)
+- **`objection_kb.json`** - RAG knowledge base with 16 objection handlers + fallback
+- **`aidn_agent_v2.py`** - New agent with `get_objection_response()` RAG tool
+- **`INTEGRATION_GUIDE.md`** - Integration instructions for new architecture
+
+#### Removed
+- `aidn_agent.py` - Replaced by `aidn_agent_v2.py`
+- `objection_handler.py` - Replaced by `objection_kb.json` + RAG tool
+- `script_knowledge_base.py` - Replaced by `core_prompt.py`
+
+#### Changed
+- `main.py` - Updated import to use `AIDNVoiceAgent` from `aidn_agent_v2`
+
+#### Architecture
+```
+Layer 1: Slim Core Prompt (~1200 tokens)
+    ↓
+Layer 2: RAG Tools (get_objection_response, etc.)
+    ↓
+Layer 3: Knowledge Base (objection_kb.json)
+```
+
+#### Latency Improvement
+| Metric | Before | After |
+|--------|--------|-------|
+| System prompt | ~5000 tokens | ~1200 tokens |
+| First response | 3-4 seconds | <1 second |
+| Objection handling | In-prompt | RAG retrieval |
+
+#### Test Results
+- ✅ Call connected successfully
+- ✅ Greeting delivered with new slim prompt
+- ✅ Conversation flow working (address → time selection)
+- ✅ Cartesia TTS + Deepgram STT operational
+
+---
+
 ## [2.1.0] - January 3, 2026
 
 ### NEW: Aiden Persona & Low-Latency Voice

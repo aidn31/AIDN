@@ -1,7 +1,7 @@
 # AIDN Architecture
 
-**Last Updated:** January 2, 2026
-**Status:** PRODUCTION READY - LiveKit SIP + Telnyx
+**Last Updated:** January 5, 2026
+**Status:** PRODUCTION READY - LiveKit SIP + Telnyx + RAG Architecture
 
 ---
 
@@ -40,7 +40,8 @@
                           ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                 AIDN VOICE AGENT (LiveKit)                      │
-│  Stack: Deepgram STT + GPT-4o-mini + OpenAI TTS                │
+│  Stack: Deepgram STT + GPT-4o-mini + Cartesia TTS              │
+│  Architecture: Slim Prompt (~1200 tokens) + RAG Objections     │
 │  Agent: aidn-outbound                                          │
 │  Status: ✅ WORKING                                             │
 └─────────────────────────────────────────────────────────────────┘
@@ -91,7 +92,7 @@ await session.say(greeting)
 | **Voice Agent** | LiveKit Agents v1.3.10 | ✅ WORKING | aidn-outbound |
 | **Phone Provider** | Telnyx (via LiveKit SIP) | ✅ WORKING | No custom bridge |
 | **Speech-to-Text** | Deepgram Nova-2 | ✅ WORKING | Real-time transcription |
-| **Text-to-Speech** | OpenAI TTS | ✅ WORKING | "echo" voice, 0.9x speed |
+| **Text-to-Speech** | Cartesia Sonic 2 | ✅ WORKING | ~100-150ms latency, streaming |
 | **LLM** | OpenAI GPT-4o-mini | ✅ WORKING | Temperature 0.7 |
 | **Database** | PostgreSQL | ✅ COMPLETE | Full schema |
 | **VAD** | Silero | ✅ WORKING | Voice activity detection |
@@ -117,11 +118,52 @@ SIP_OUTBOUND_TRUNK_ID=ST_...  # From LiveKit Cloud after Telnyx setup
 
 | File | Purpose |
 |------|---------|
-| `src/voice_agent/main.py` | Agent entry point, SIP dialing |
-| `src/voice_agent/aidn_agent.py` | Voice agent with tools and persona |
-| `src/voice_agent/objection_handler.py` | Objection response logic |
-| `src/voice_agent/script_knowledge_base.py` | Scripts by lead type |
+| `src/voice_agent/main.py` | Agent entry point, SIP dialing, session config |
+| `src/voice_agent/aidn_agent_v2.py` | Voice agent with RAG tools (AIDNVoiceAgent) |
+| `src/voice_agent/core_prompt.py` | Slim system prompt (~1200 tokens) |
+| `src/voice_agent/objection_kb.json` | RAG knowledge base (16 objection handlers) |
 | `src/shared/database/` | Database connection and repositories |
+| `scripts/test_call.py` | Test call dispatcher |
+
+---
+
+## 3-Layer RAG Architecture (v2)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    LAYER 1: SLIM CORE PROMPT                    │
+│  core_prompt.py (~66 lines, ~1200 tokens)                      │
+│  • Role, voice style, conversation flow                         │
+│  • Lead/agent info injected at runtime                         │
+│  • Guardrails and response style rules                         │
+└─────────────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    LAYER 2: RAG TOOLS                           │
+│  get_objection_response() - retrieves from objection_kb.json   │
+│  get_available_times() - appointment availability              │
+│  confirm_appointment() - tie-down with confirmation code       │
+│  schedule_callback() - callback scheduling                     │
+└─────────────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                 LAYER 3: KNOWLEDGE BASE                         │
+│  objection_kb.json (16 handlers + fallback)                    │
+│  • Trigger-based matching                                       │
+│  • Personalized response templates                             │
+│  • Strategy documentation per objection                        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Latency Improvement
+
+| Metric | Old (v1) | New (v2) |
+|--------|----------|----------|
+| System prompt | ~5000 tokens | ~1200 tokens |
+| First response | 3-4 seconds | <1 second |
+| Objection handling | In-prompt | RAG retrieval |
 
 ---
 

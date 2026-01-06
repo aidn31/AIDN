@@ -1,0 +1,120 @@
+{
+  "objections": [
+    {
+      "id": "what_is_it_1",
+      "name": "What is it? (First time)",
+      "triggers": ["what is it", "what's this about", "what are you calling about", "what do you want"],
+      "strategy": "Confirm identity first, then explain briefly, redirect to scheduling",
+      "response": "Oh yeah - hey real quick, I'm speaking with {first_name} {last_name}, right? [wait] And you're still at {address}? [wait] Ok perfect, yeah looks like you filled this out... so it's about the cash benefit programs for folks in your age group here in {county}. My job is just to get you the info - they've got {agent_name} in your area tomorrow. Morning or afternoon work better?"
+    },
+    {
+      "id": "what_is_it_2",
+      "name": "What is it? (Second time)",
+      "triggers": ["what is it again", "but what is it exactly", "i still don't understand"],
+      "strategy": "More detail with DOB reference, still redirect",
+      "response": "Yeah so it's the updated 2025 cash benefit programs for your age group - I've got your date of birth here as {dob}. Basically my job is just to get you the info and they have {agent_name} out there tomorrow. Would around 10am work or would 2pm be better?"
+    },
+    {
+      "id": "not_interested_1",
+      "name": "Not interested (First time)",
+      "triggers": ["not interested", "no thanks", "i'm good", "don't need it"],
+      "strategy": "Confirm identity, then 'we have to get the info to you anyway'",
+      "response": "Oh ok - hey real quick, I am speaking with {first_name} {last_name} right? [wait] And you're still at {address}? [wait] Ok yeah, that's totally fine - we just gotta get the information you requested out to ya, that's all. So {agent_name} is gonna be in your area tomorrow - morning or afternoon work better?"
+    },
+    {
+      "id": "not_interested_2",
+      "name": "Not interested (Second time)",
+      "triggers": ["i said not interested", "no really", "i don't want it"],
+      "strategy": "Acknowledge, remind they filled out card, ask when they're home",
+      "response": "I hear ya {first_name}. Look, you filled out the card so we're required to get this info to you either way - it's real quick, {agent_name} will be in and out. What time are you usually home tomorrow?"
+    },
+    {
+      "id": "not_interested_3",
+      "name": "Not interested (Third time)",
+      "triggers": ["stop calling", "leave me alone", "take me off your list"],
+      "strategy": "Last attempt - find when they're home, stay friendly",
+      "response": "No I totally get it. Tell you what - what time do you usually get home from work? Or are you retired? I just need to find a time when you'll be there."
+    },
+    {
+      "id": "busy_now",
+      "name": "I'm busy right now",
+      "triggers": ["i'm busy", "bad time", "can't talk", "in the middle of something"],
+      "strategy": "Acknowledge, promise 30 seconds, get morning/afternoon",
+      "response": "Oh I totally get it, this'll just take 30 seconds - I just need to know if morning or afternoon works better tomorrow and I'll let you go. Which is better for ya?"
+    },
+    {
+      "id": "how_got_number",
+      "name": "How did you get my number?",
+      "triggers": ["how did you get my number", "where'd you get my info", "how do you have my number"],
+      "strategy": "Explain card they filled out, redirect",
+      "response": "Yeah so you had filled out one of those cards a little while back requesting info about the benefit programs. We're just following up on that. So they've got {agent_name} in your area tomorrow - morning or afternoon work better for you?"
+    },
+    {
+      "id": "is_this_scam",
+      "name": "Is this a scam?",
+      "triggers": ["is this a scam", "are you scamming me", "this sounds like a scam", "is this legit"],
+      "strategy": "Light humor, reassure, no sensitive info asked, redirect",
+      "response": "Ha, no no I totally understand being cautious these days. I'm just calling from the benefits center here in {county} following up on the card you filled out. I'm not gonna ask for your social security or credit card or anything like that - just trying to get the info packet out to ya. Morning or afternoon tomorrow work better?"
+    },
+    {
+      "id": "just_mail_it",
+      "name": "Just send me the info / Mail it",
+      "triggers": ["just send me the info", "mail it to me", "just email it", "send it in the mail"],
+      "strategy": "Explain needs in-person review, quick visit",
+      "response": "Yeah I wish I could but honestly these programs are pretty specific to your situation - age, health, all that stuff - so it really needs to be gone over in person for it to make sense. It's real quick though, {agent_name} will be in and out. Morning or afternoon tomorrow work better?"
+    },
+    {
+      "id": "already_have_insurance",
+      "name": "I already have insurance",
+      "triggers": ["already have insurance", "i'm covered", "got insurance already", "don't need more insurance"],
+      "strategy": "Compliment, mention rates change, quick stop",
+      "response": "Oh nice, that's good you're covered! A lot of folks in your area actually just wanna make sure they're still getting the best deal - rates change all the time. {agent_name} is gonna be in your area tomorrow anyway - morning or afternoon work better for a quick stop?"
+    },
+    {
+      "id": "talk_to_spouse",
+      "name": "Need to talk to spouse/family first",
+      "triggers": ["talk to my spouse", "ask my husband", "ask my wife", "check with my family", "need to discuss"],
+      "strategy": "Ask if they're there now, otherwise schedule when both home",
+      "response": "Oh absolutely, are they there with you now? I can hold real quick. [if not] No problem - what time will they be home? I can call back then, or we can just schedule when both of you will be there. What time works tomorrow?"
+    },
+    {
+      "id": "not_feeling_well",
+      "name": "Not feeling well / Health issue",
+      "triggers": ["not feeling well", "i'm sick", "health issues", "in the hospital", "just got out of hospital"],
+      "strategy": "Show empathy, schedule for later",
+      "response": "Oh I'm sorry to hear that {first_name}, I hope you feel better soon. When do you think you'll be back on your feet? I'll schedule {agent_name} to stop by then - would later this week work or next week?"
+    },
+    {
+      "id": "call_back_later",
+      "name": "Call me back later",
+      "triggers": ["call me back", "call later", "try again later", "another time"],
+      "strategy": "Get specific time, confirm callback",
+      "response": "Yeah no problem - when's a good time? I'll put you down and call you right back. What time works better, morning or afternoon?"
+    },
+    {
+      "id": "at_work",
+      "name": "I'm at work",
+      "triggers": ["i'm at work", "at the office", "working right now", "can't talk at work"],
+      "strategy": "Ask when they get off, schedule for evening",
+      "response": "Oh gotcha, no worries. What time do you get off? I can call you back then, or we can just go ahead and schedule - what time are you usually home in the evenings?"
+    },
+    {
+      "id": "wrong_person",
+      "name": "Wrong person / Not me",
+      "triggers": ["that's not me", "wrong person", "wrong number", "i didn't fill anything out"],
+      "strategy": "Apologize, verify name, if wrong end politely",
+      "response": "Oh I'm sorry about that - I'm looking for {first_name} {last_name} at {address}. Is that you? [if no] My apologies, must have the wrong info. You have a great day!"
+    },
+    {
+      "id": "someone_died",
+      "name": "Person passed away",
+      "triggers": ["passed away", "died", "no longer with us", "deceased"],
+      "strategy": "Express sincere condolences, end call gracefully",
+      "response": "Oh I'm so sorry for your loss. I apologize for the call. Please take care of yourself."
+    }
+  ],
+  "fallback": {
+    "strategy": "If objection not recognized, acknowledge and redirect to scheduling",
+    "response": "I hear ya. Tell you what - {agent_name} is gonna be in your area tomorrow anyway. Would morning or afternoon work better for a quick stop?"
+  }
+}
