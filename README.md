@@ -27,7 +27,7 @@ Eliminate the manual lead-calling burden for life insurance agents while maximiz
                           ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                   AIDN VOICE AGENT (LiveKit)                     │
-│         Twilio + Deepgram + ElevenLabs + OpenAI                 │
+│         LiveKit SIP + Telnyx + Deepgram + GPT-4o-mini + Cartesia│
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -36,11 +36,12 @@ Eliminate the manual lead-calling burden for life insurance agents while maximiz
 ### Prerequisites
 
 - Python 3.9 or later
-- PostgreSQL database (Supabase recommended)
+- PostgreSQL database
 - API Keys:
   - OpenAI API key
   - Deepgram API key
-  - Twilio Account SID, Auth Token, and Phone Number
+  - Cartesia API key (for low-latency TTS)
+  - LiveKit Cloud account (for SIP + Telnyx integration)
 
 ### 1. Install Dependencies
 
@@ -61,9 +62,11 @@ Required variables:
 - `DATABASE_URL` - PostgreSQL connection string
 - `OPENAI_API_KEY` - OpenAI API key
 - `DEEPGRAM_API_KEY` - Deepgram API key
-- `TWILIO_ACCOUNT_SID` - Twilio Account SID
-- `TWILIO_AUTH_TOKEN` - Twilio Auth Token
-- `TWILIO_PHONE_NUMBER` - Twilio phone number for outbound calls
+- `CARTESIA_API_KEY` - Cartesia API key (for low-latency TTS)
+- `LIVEKIT_URL` - LiveKit Cloud WebSocket URL
+- `LIVEKIT_API_KEY` - LiveKit API key
+- `LIVEKIT_API_SECRET` - LiveKit API secret
+- `SIP_OUTBOUND_TRUNK_ID` - LiveKit SIP trunk ID (configured with Telnyx)
 
 ### 3. Initialize Database
 
@@ -114,7 +117,7 @@ docker-compose logs -f voice-agent
 
 - **Natural Conversations**: AI that sounds human and builds rapport
 - **Insurance-Specific**: Built for life insurance sales workflows
-- **Objection Handling**: Handles 5 core objection scenarios
+- **Objection Handling**: Handles 12+ objection scenarios via RAG
 - **Compliance-First**: TCPA compliant, never discusses policy details
 - **Smart Scheduling**: Atomic appointment booking with calendar sync
 
@@ -127,7 +130,7 @@ docker-compose logs -f voice-agent
 
 ## 🏃‍♂️ Development Status
 
-**Current Phase:** PROTOTYPE (Week 1 of 7)
+**Current Phase:** PRODUCTION READY - Voice Optimization Phase
 
 ### Completed ✅
 - [x] Unified project structure
@@ -137,10 +140,10 @@ docker-compose logs -f voice-agent
 - [x] Docker deployment configuration
 
 ### In Progress 🚧
-- [ ] Consolidate existing repositories
-- [ ] Database migration script
-- [ ] Twilio/LiveKit integration testing
-- [ ] 5 core objection scenarios
+- [ ] Voice optimization (reduce latency from 1400-2400ms → <500ms)
+- [ ] Dashboard integration (wire up call button)
+- [ ] End-to-end appointment booking flow
+- [ ] YC demo preparation
 
 ### Next Steps 📋
 - [ ] Appointment slot generation logic
