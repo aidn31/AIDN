@@ -1,7 +1,7 @@
 # AIDN Next Steps
 
-**Last Updated:** January 2, 2026
-**Status:** Voice Agent Working - Ready for Integration
+**Last Updated:** January 5, 2026
+**Status:** Voice Agent Working - Voice Optimization Needed Before YC Demo
 
 ---
 
@@ -18,19 +18,52 @@
 
 ## Immediate Next Steps
 
-### 1. Dashboard Integration
+### 1. Voice Optimization (Priority - Before YC Demo)
+**Goal:** Reduce latency from 1400-2400ms → <500ms and improve voice naturalness
+
+#### Phase 1: Diagnose (Do First)
+- [ ] Add per-component latency logging (STT, LLM TTFT, TTS TTFB)
+- [ ] Log TTFT for each turn number (Turn 1, Turn 2, Turn 3...)
+- [ ] Check if TTFT improves after Turn 1 (indicates KV caching is working)
+- [ ] Record 5-10 test calls with full latency data
+- [ ] Answer key questions: Is Turn 2+ faster? Is streaming enabled? What are actual latencies?
+
+#### Phase 2: Fix Latency (Critical Path)
+- [ ] Test Groq Llama 3.1 70B as LLM alternative (may reduce TTFT from 800-1600ms → <300ms)
+- [ ] Verify prompt is built ONCE at call start (not every turn)
+- [ ] Keep system prompt under 600 tokens
+- [ ] Verify streaming enabled end-to-end (STT, LLM, TTS)
+- [ ] Tune VAD settings (reduce min_silence_duration from 0.55s to 0.4s)
+
+#### Phase 3: Improve Voice Quality
+- [ ] Add filler words instruction to prompt: "Use umm, yeah, so, oh"
+- [ ] Enforce short responses: "Max 2 sentences, max 25 words"
+- [ ] Add natural punctuation instruction: "Use commas and periods for pauses"
+- [ ] Implement conditional filler injection when LLM takes >300ms
+- [ ] Test Cartesia emotion controls (currently using `["positivity:high", "curiosity:medium"]`)
+- [ ] Consider switching to emotive-tagged voice (e.g., Marian: `26403c37-80c1-4a1a-8692-540551ca2ae5`)
+
+#### Phase 4: Testing & Validation
+- [ ] Run 10 test calls after each change
+- [ ] Measure average total latency and P95 latency
+- [ ] Record 5+ test calls, listen for naturalness
+- [ ] Get feedback from someone who doesn't know it's AI
+
+**See `docs/VOICE_OPTIMIZATION_CHECKLIST.md` for complete checklist.**
+
+### 2. Dashboard Integration
 - [ ] Add "Call Lead" button to dashboard
 - [ ] Dispatch agent job when button clicked
 - [ ] Show call status in real-time
 - [ ] Display call logs after completion
 
-### 2. Lead Database Integration
+### 3. Lead Database Integration
 - [ ] Pass lead_id in job metadata
 - [ ] Load full lead context from database
 - [ ] Personalize greeting with lead name/address
 - [ ] Update lead status after call
 
-### 3. Appointment Booking
+### 4. Appointment Booking
 - [ ] Connect book_appointment tool to database
 - [ ] Create appointment slots for agents
 - [ ] Confirm bookings via agent response
@@ -43,6 +76,7 @@
 - [ ] Add call recording
 - [ ] Store transcripts in database
 - [ ] Implement call analytics
+- [ ] Build latency monitoring dashboard (from optimization checklist)
 
 ### Scale
 - [ ] Deploy agent to LiveKit Cloud

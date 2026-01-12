@@ -1,5 +1,21 @@
 # AIDN Changelog
 
+## [Unreleased] - Voice Optimization Phase
+
+### Voice Optimization Checklist Added
+- Added comprehensive voice optimization checklist (`docs/VOICE_OPTIMIZATION_CHECKLIST.md`)
+- Identified latency bottlenecks: Current 1400-2400ms → Target <500ms
+- LLM TTFT identified as biggest bottleneck (800-1600ms → Target <300ms)
+- Optimization phases defined: Diagnose → Fix Latency → Improve Quality → Validate
+- Priority: Test Groq LLM alternative, add latency logging, improve voice naturalness
+
+### Documentation Updates
+- Updated `PROJECT_STATUS.md` with voice optimization status
+- Updated `NEXT_STEPS.md` to prioritize voice optimization before YC demo
+- Updated `ARCHITECTURE.md` with current latency metrics and optimization priorities
+
+---
+
 ## [2.2.0] - January 5, 2026
 
 ### NEW: 3-Layer RAG Architecture for Low Latency

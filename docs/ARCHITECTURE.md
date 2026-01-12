@@ -92,8 +92,8 @@ await session.say(greeting)
 | **Voice Agent** | LiveKit Agents v1.3.10 | ✅ WORKING | aidn-outbound |
 | **Phone Provider** | Telnyx (via LiveKit SIP) | ✅ WORKING | No custom bridge |
 | **Speech-to-Text** | Deepgram Nova-2 | ✅ WORKING | Real-time transcription |
-| **Text-to-Speech** | Cartesia Sonic 2 | ✅ WORKING | ~100-150ms latency, streaming |
-| **LLM** | OpenAI GPT-4o-mini | ✅ WORKING | Temperature 0.7 |
+| **Text-to-Speech** | Cartesia Sonic 2 | ✅ WORKING | ~100-150ms latency, streaming. Emotion: `["positivity:high", "curiosity:medium"]` |
+| **LLM** | OpenAI GPT-4o-mini | ✅ WORKING | Temperature 0.7. **Note:** Consider Groq for lower latency (see optimization checklist) |
 | **Database** | PostgreSQL | ✅ COMPLETE | Full schema |
 | **VAD** | Silero | ✅ WORKING | Voice activity detection |
 
@@ -232,6 +232,25 @@ await lk_api.agent_dispatch.create_dispatch(
 
 ---
 
+## Voice Optimization Status
+
+**Current Latency:** 1400-2400ms total response time  
+**Target:** <500ms total response time  
+**Status:** Optimization needed (see `docs/VOICE_OPTIMIZATION_CHECKLIST.md`)
+
+### Current Component Latencies
+- **STT:** 260-500ms (Target: <150ms)
+- **LLM TTFT:** 800-1600ms (Target: <300ms) - **Biggest bottleneck**
+- **TTS TTFB:** Unknown (Target: <100ms)
+
+### Optimization Priorities
+1. **Phase 1:** Add comprehensive latency logging to diagnose bottlenecks
+2. **Phase 2:** Test Groq LLM alternative (may reduce LLM TTFT significantly)
+3. **Phase 3:** Improve voice naturalness (filler words, response length, emotion tuning)
+4. **Phase 4:** Validate improvements with test calls
+
+---
+
 ## Success Metrics (YC Targets)
 
 | Metric | Industry Average | AIDN Target | Status |
@@ -240,3 +259,4 @@ await lk_api.agent_dispatch.create_dispatch(
 | **Booking Rate** | 2-5% | 10%+ | Objection handling ready |
 | **Show Rate** | 50-60% | 75%+ | Smart scheduling implemented |
 | **Cost per Appointment** | $50-100 | $20-30 | Automation reduces costs |
+| **Voice Latency** | N/A | <500ms | **Needs optimization** (currently 1400-2400ms) |

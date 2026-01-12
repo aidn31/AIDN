@@ -1,7 +1,7 @@
 # AIDN Project Status
 
-**Last Updated:** January 3, 2026
-**Status:** PRODUCTION READY
+**Last Updated:** January 5, 2026
+**Status:** PRODUCTION READY - Voice Optimization Needed
 
 ---
 
@@ -110,6 +110,27 @@ LIVEKIT_API_KEY=...
 LIVEKIT_API_SECRET=...
 SIP_OUTBOUND_TRUNK_ID=ST_...
 ```
+
+---
+
+## Voice Optimization Status
+
+**Current Focus:** Improving voice quality and reducing latency per optimization checklist.
+
+### Current Metrics (Baseline)
+- **Total Latency:** 1400-2400ms (Target: <500ms)
+- **STT Latency:** 260-500ms (Target: <150ms)
+- **LLM TTFT:** 800-1600ms (Target: <300ms)
+- **TTS TTFB:** Unknown (Target: <100ms)
+- **Response Length:** Unknown (Target: <25 words)
+
+### Optimization Phases
+- **Phase 1: Diagnose** - Not started (need latency logging per component)
+- **Phase 2: Fix Latency** - Not started (consider Groq, optimize prompt, verify streaming)
+- **Phase 3: Improve Voice Quality** - Not started (filler words, emotion controls, response length)
+- **Phase 4: Testing & Validation** - Not started
+
+See `docs/VOICE_OPTIMIZATION_CHECKLIST.md` for detailed checklist.
 
 ---
 
