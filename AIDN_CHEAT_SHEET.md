@@ -22,10 +22,12 @@ git push
 Review the changes made this session and commit them to git with an appropriate commit message, then push to origin.
 
 **Examples of good commit messages:**
-- `"Voice agent now connects to Twilio"`
-- `"Fixed appointment booking bug"`Rea
+- `"Voice agent now connects via LiveKit SIP + Telnyx"`
+- `"Fixed appointment booking bug"`
 - `"Added lead upload feature"`
 - `"Updated system prompt for better objections"`
+- `"docs: Update architecture with voice optimization status"`
+- `"chore: Remove obsolete dashboard files"`
 
 ---
 
@@ -34,11 +36,13 @@ Review the changes made this session and commit them to git with an appropriate 
 | File | What It Is |
 |------|------------|
 | `AIDN_SPECIFICATION.md` | The full vision - what we're building |
-| `CLAUDE_INSTRUCTIONS.md` | Tells Claude how to onboard itself |
+| `docs/CLAUDE_INSTRUCTIONS.md` | Tells Claude how to onboard itself |
 | `docs/PROJECT_STATUS.md` | Current state - what works, what doesn't |
 | `docs/NEXT_STEPS.md` | Prioritized todo list |
 | `docs/ISSUES_RESOLVED.md` | Bugs already fixed - don't re-solve |
 | `docs/DECISION_LOG.md` | Why we made certain choices |
+| `docs/YC_DEADLINE_ROADMAP.md` | 5-week plan to Feb 9 deadline |
+| `docs/VOICE_OPTIMIZATION_CHECKLIST.md` | Voice latency optimization guide |
 
 ---
 
