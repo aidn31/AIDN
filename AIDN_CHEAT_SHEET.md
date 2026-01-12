@@ -2,9 +2,29 @@
 
 ## 🔄 Starting a New Chat in Cursor
 
-Copy and paste this:
+Copy and paste this prompt to restart context:
+
 ```
-Read AIDN_SPECIFICATION.md and /docs, then continue where we left off
+Read AIDN_SPECIFICATION.md and all files in /docs to understand the AIDN project.
+
+Key files to review:
+- AIDN_SPECIFICATION.md - Full vision and requirements
+- docs/PROJECT_STATUS.md - Current state (what works, what doesn't)
+- docs/NEXT_STEPS.md - Current priorities
+- docs/YC_DEADLINE_ROADMAP.md - 5-week plan to Feb 9 deadline
+- docs/ARCHITECTURE.md - Technical architecture
+- docs/VOICE_OPTIMIZATION_CHECKLIST.md - Current focus area
+
+Current Priority: Voice optimization (reduce latency from 1400-2400ms → <500ms)
+Next Task: Phase 1 - Add latency logging per component (STT, LLM TTFT, TTS TTFB)
+
+After reading, summarize:
+1. What is AIDN?
+2. Current status (what's working, what's not)
+3. What's the #1 priority right now?
+4. What should we work on next?
+
+Then continue with the next task from docs/NEXT_STEPS.md or docs/YC_DEADLINE_ROADMAP.md
 ```
 
 ---
