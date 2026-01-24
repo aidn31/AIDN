@@ -19,6 +19,7 @@ from livekit.agents import AgentSession, JobContext, WorkerOptions, cli
 from livekit.plugins import deepgram, openai, silero, cartesia
 
 from .aidn_agent_v2 import AIDNVoiceAgent
+from .latency_tracker import LatencyTracker, get_tracker, reset_tracker
 from ..shared.database import DatabaseManager, LeadRepository, AgentRepository
 
 # Load environment variables
@@ -127,16 +128,35 @@ async def entrypoint(ctx: JobContext):
     #   - min_endpointing_delay: How long after speech stops before responding (default 0.5s)
     #   - max_endpointing_delay: Maximum wait before forcing response (default 3.0s)
     #
+    # Choose LLM: "groq" for speed, "openai" for quality
+    # Groq Llama 3.1 70B: ~100-200ms TTFT (vs GPT-4o-mini: ~500-1700ms)
+    llm_provider = os.getenv("LLM_PROVIDER", "groq").lower()
+
+    if llm_provider == "groq":
+        # Use Groq via OpenAI-compatible API
+        # Models: llama-3.3-70b-versatile (smart), llama-3.1-8b-instant (fastest)
+        groq_model = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
+        llm = openai.LLM(
+            model=groq_model,
+            temperature=0.7,
+            base_url="https://api.groq.com/openai/v1",
+            api_key=os.getenv("GROQ_API_KEY"),
+        )
+        logger.info(f"🚀 Using Groq {groq_model} (low latency)")
+    else:
+        llm = openai.LLM(
+            model="gpt-4o-mini",
+            temperature=0.7,
+        )
+        logger.info("🤖 Using OpenAI GPT-4o-mini")
+
     session = AgentSession(
         stt=deepgram.STT(
             model="nova-2",
             language="en-US",
             endpointing_ms=25,  # 25ms endpointing (fast turn detection)
         ),
-        llm=openai.LLM(
-            model="gpt-4o-mini",  # Fast model, good for conversation
-            temperature=0.7,
-        ),
+        llm=llm,
         # Cartesia TTS - fastest option with streaming support
         tts=cartesia.TTS(
             model="sonic-2-2025-03-07",
@@ -145,30 +165,62 @@ async def entrypoint(ctx: JobContext):
             emotion=["positivity:high", "curiosity:medium"],  # Friendly tone
         ),
         vad=silero.VAD.load(
-            min_silence_duration=0.2,  # 200ms silence = end of turn (was 0.3)
-            prefix_padding_duration=0.05,  # 50ms padding (was 0.1)
+            min_silence_duration=0.15,  # 150ms silence = end of turn (was 0.2)
+            prefix_padding_duration=0.03,  # 30ms padding (was 0.05)
             min_speech_duration=0.05,  # Detect speech quickly
-            activation_threshold=0.4,  # Slightly more sensitive (was 0.5)
+            activation_threshold=0.35,  # More sensitive (was 0.4)
         ),
         # KEY LATENCY SETTINGS - respond faster after user stops speaking
-        min_endpointing_delay=0.1,  # 100ms min delay (default 0.5s)
-        max_endpointing_delay=0.8,  # 800ms max delay (default 3.0s)
+        min_endpointing_delay=0.05,  # 50ms min delay (was 0.1)
+        max_endpointing_delay=0.4,  # 400ms max delay (was 0.8)
     )
 
-    # Add timing metrics for debugging latency
-    speech_end_time = None
+    # Initialize latency tracker for this call
+    reset_tracker()
+    tracker = get_tracker(call_id=room_name)
 
-    @session.on("user_speech_committed")
-    def on_user_speech_committed(msg):
-        nonlocal speech_end_time
-        speech_end_time = time.time()
-        logger.info(f"⏱️ USER_SPEECH_END: {msg.transcript[:50]}...")
+    # ==========================================================================
+    # LATENCY TRACKING EVENTS
+    # ==========================================================================
+    #
+    # Pipeline flow:
+    #   1. User speaks -> VAD detects end of speech
+    #   2. STT processes audio -> transcript ready
+    #   3. LLM receives transcript -> generates response (TTFT = first token)
+    #   4. TTS receives text -> generates audio (TTFB = first byte)
+    #   5. Agent speaks -> audio plays
+    #
+    # We track each stage to identify bottlenecks.
+    # ==========================================================================
 
-    @session.on("agent_started_speaking")
-    def on_agent_started():
-        if speech_end_time:
-            latency = (time.time() - speech_end_time) * 1000
-            logger.info(f"⏱️ RESPONSE_LATENCY: {latency:.0f}ms (speech_end -> agent_start)")
+    @session.on("user_input_transcribed")
+    def on_user_input_transcribed(ev):
+        """Called when STT transcribes user speech."""
+        if ev.is_final:
+            # Final transcript - start tracking this turn
+            tracker.on_speech_end()
+            tracker.on_transcript_ready(ev.transcript)
+            logger.info(f"USER: {ev.transcript[:60]}...")
+
+    @session.on("speech_created")
+    def on_speech_created(ev):
+        """Called when agent starts generating a response."""
+        if ev.user_initiated:
+            # LLM is starting to generate response to user input
+            tracker.on_llm_first_token()
+
+    @session.on("agent_state_changed")
+    def on_agent_state_changed(ev):
+        """Called when agent state changes."""
+        if ev.new_state == "speaking":
+            # Agent is now speaking - TTS audio is playing
+            tracker.on_tts_first_byte()
+            tracker.on_agent_speaking()
+
+    @session.on("metrics_collected")
+    def on_metrics_collected(ev):
+        """Log internal LiveKit metrics for additional insight."""
+        logger.debug(f"METRICS: {ev}")
 
     # Start the session BEFORE dialing
     await session.start(room=ctx.room, agent=agent)
@@ -239,14 +291,29 @@ async def entrypoint(ctx: JobContext):
     await disconnected.wait()
     logger.info(f"📴 Call ended in room: {room_name}")
 
+    # Log latency summary for this call
+    tracker.log_summary()
+
+    # Optionally save metrics to file for analysis
+    try:
+        metrics_dir = os.path.join(os.path.dirname(__file__), "../../logs/latency")
+        os.makedirs(metrics_dir, exist_ok=True)
+        metrics_file = os.path.join(metrics_dir, f"{room_name}_latency.json")
+        with open(metrics_file, "w") as f:
+            f.write(tracker.get_metrics_json())
+        logger.info(f"📊 Latency metrics saved to: {metrics_file}")
+    except Exception as e:
+        logger.warning(f"Could not save latency metrics: {e}")
+
 
 def main():
     """Main function to run the AIDN voice agent."""
 
     # Verify required environment variables
+    llm_provider = os.getenv("LLM_PROVIDER", "groq").lower()
+
     required_vars = [
         "DATABASE_URL",
-        "OPENAI_API_KEY",
         "DEEPGRAM_API_KEY",
         "CARTESIA_API_KEY",  # For low-latency TTS
         "LIVEKIT_URL",
@@ -254,6 +321,12 @@ def main():
         "LIVEKIT_API_SECRET",
         "SIP_OUTBOUND_TRUNK_ID",
     ]
+
+    # Add LLM-specific API key requirement
+    if llm_provider == "groq":
+        required_vars.append("GROQ_API_KEY")
+    else:
+        required_vars.append("OPENAI_API_KEY")
 
     missing_vars = [var for var in required_vars if not os.getenv(var)]
     if missing_vars:

@@ -4,9 +4,9 @@
 *Goal: Understand exactly where your latency is coming from*
 
 ### Logging & Measurement
-- [ ] Add per-component latency logging (STT, LLM TTFT, TTS TTFB)
-- [ ] Log TTFT for each turn number (Turn 1, Turn 2, Turn 3...)
-- [ ] Check if TTFT improves after Turn 1 (indicates KV caching is working)
+- [x] Add per-component latency logging (STT, LLM TTFT, TTS TTFB)
+- [x] Log TTFT for each turn number (Turn 1, Turn 2, Turn 3...)
+- [x] Check if TTFT improves after Turn 1 (indicates KV caching is working)
 - [ ] Log total token count sent per turn
 - [ ] Record 5-10 test calls with full latency data
 
@@ -107,35 +107,34 @@
 
 ## Quick Reference: Target Metrics
 
-| Metric | Current | Target | Top Performer |
-|--------|---------|--------|---------------|
-| Total Latency | 1400-2400ms | <500ms | <400ms |
-| STT | 260-500ms | <150ms | <100ms |
-| LLM TTFT | 800-1600ms | <300ms | <200ms |
-| TTS TTFB | Unknown | <100ms | <75ms |
-| Response Length | Unknown | <25 words | <20 words |
+| Metric | Before | After | Target | Status |
+|--------|--------|-------|--------|--------|
+| Total Latency | 1400-2400ms | **700-800ms** | <500ms | ✅ 50-65% improved |
+| STT | 350-500ms | **~350ms** | <150ms | 🟡 Acceptable |
+| LLM TTFT | 800-1600ms | **300-500ms** | <300ms | ✅ 60% improved |
+| TTS TTFB | ~320ms | **~320ms** | <100ms | 🟡 Acceptable |
+| Response Length | Unknown | Unknown | <25 words | ⏳ Pending |
 
 ---
 
-## Priority Order (What to Do First)
+## Completed Optimizations
 
-### This Week (Before Anything Else)
-1. ☐ Add latency logging per component
-2. ☐ Check if Turn 2 is faster than Turn 1
-3. ☐ Test Groq as LLM alternative
-4. ☐ Verify streaming is enabled
+### Phase 1: Diagnostics - DONE
+1. ☑ Add latency logging per component
+2. ☑ Check if Turn 2 is faster than Turn 1 (KV caching confirmed working)
+3. ☑ Test Groq as LLM alternative
+4. ☑ Verify streaming is enabled
 
-### Next Week
-5. ☐ Update prompt for filler words and short responses
-6. ☐ Implement conditional filler injection (only when slow)
-7. ☐ Test Cartesia emotion controls
-8. ☐ Tune VAD settings
+### Phase 2: Latency Fixes - DONE
+5. ☑ Switch to Groq Llama 3.1 8B Instant
+6. ☑ Optimize VAD settings (min_silence=150ms)
+7. ☑ Reduce endpointing delays (50ms-400ms)
 
-### Before YC Deadline
-9. ☐ A/B test voice options
-10. ☐ Measure conversion rate impact
-11. ☐ Build latency monitoring dashboard
-12. ☐ Document improvements for application
+### Still To Do (Lower Priority)
+8. ☐ Update prompt for filler words and short responses
+9. ☐ Implement conditional filler injection (only when slow)
+10. ☐ Test Cartesia emotion controls
+11. ☐ A/B test voice options
 
 ---
 

@@ -1,11 +1,18 @@
 # AIDN Next Steps
 
-**Last Updated:** January 5, 2026
-**Status:** Voice Agent Working - Voice Optimization Needed Before YC Demo
+**Last Updated:** January 24, 2026
+**Status:** Voice Optimization Complete - Dashboard Integration Next
 
 ---
 
 ## Completed
+
+### January 24, 2026 - Voice Optimization
+- [x] Add per-component latency logging (STT, LLM TTFT, TTS TTFB)
+- [x] Log TTFT for each turn number
+- [x] Test and switch to Groq LLM (Llama 3.1 8B Instant)
+- [x] Optimize VAD settings (min_silence=150ms, endpointing=50-400ms)
+- [x] **Reduced latency from 1400-2400ms → 700-800ms (50-65% improvement)**
 
 ### January 2, 2026 - LiveKit SIP Migration
 - [x] Delete old Twilio bridge code
@@ -18,22 +25,8 @@
 
 ## Immediate Next Steps
 
-### 1. Voice Optimization (Priority - Before YC Demo)
-**Goal:** Reduce latency from 1400-2400ms → <500ms and improve voice naturalness
-
-#### Phase 1: Diagnose (Do First)
-- [ ] Add per-component latency logging (STT, LLM TTFT, TTS TTFB)
-- [ ] Log TTFT for each turn number (Turn 1, Turn 2, Turn 3...)
-- [ ] Check if TTFT improves after Turn 1 (indicates KV caching is working)
-- [ ] Record 5-10 test calls with full latency data
-- [ ] Answer key questions: Is Turn 2+ faster? Is streaming enabled? What are actual latencies?
-
-#### Phase 2: Fix Latency (Critical Path)
-- [ ] Test Groq Llama 3.1 70B as LLM alternative (may reduce TTFT from 800-1600ms → <300ms)
-- [ ] Verify prompt is built ONCE at call start (not every turn)
-- [ ] Keep system prompt under 600 tokens
-- [ ] Verify streaming enabled end-to-end (STT, LLM, TTS)
-- [ ] Tune VAD settings (reduce min_silence_duration from 0.55s to 0.4s)
+### 1. Voice Quality Improvements (Optional - Lower Priority)
+**Goal:** Further improve voice naturalness
 
 #### Phase 3: Improve Voice Quality
 - [ ] Add filler words instruction to prompt: "Use umm, yeah, so, oh"
@@ -43,15 +36,9 @@
 - [ ] Test Cartesia emotion controls (currently using `["positivity:high", "curiosity:medium"]`)
 - [ ] Consider switching to emotive-tagged voice (e.g., Marian: `26403c37-80c1-4a1a-8692-540551ca2ae5`)
 
-#### Phase 4: Testing & Validation
-- [ ] Run 10 test calls after each change
-- [ ] Measure average total latency and P95 latency
-- [ ] Record 5+ test calls, listen for naturalness
-- [ ] Get feedback from someone who doesn't know it's AI
-
 **See `docs/VOICE_OPTIMIZATION_CHECKLIST.md` for complete checklist.**
 
-### 2. Dashboard Integration
+### 2. Dashboard Integration (HIGH PRIORITY)
 - [ ] Add "Call Lead" button to dashboard
 - [ ] Dispatch agent job when button clicked
 - [ ] Show call status in real-time

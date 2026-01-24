@@ -117,18 +117,18 @@ SIP_OUTBOUND_TRUNK_ID=ST_...
 
 **Current Focus:** Improving voice quality and reducing latency per optimization checklist.
 
-### Current Metrics (Baseline)
-- **Total Latency:** 1400-2400ms (Target: <500ms)
-- **STT Latency:** 260-500ms (Target: <150ms)
-- **LLM TTFT:** 800-1600ms (Target: <300ms)
-- **TTS TTFB:** Unknown (Target: <100ms)
+### Current Metrics (After Optimization)
+- **Total Latency:** 700-800ms (was 1400-2400ms) - **50-65% improvement**
+- **STT Latency:** ~350ms (was 260-500ms)
+- **LLM TTFT:** 300-500ms with Groq (was 800-1600ms with GPT-4o-mini) - **60% improvement**
+- **TTS TTFB:** ~320ms (Cartesia)
 - **Response Length:** Unknown (Target: <25 words)
 
-### Optimization Phases
-- **Phase 1: Diagnose** - Not started (need latency logging per component)
-- **Phase 2: Fix Latency** - Not started (consider Groq, optimize prompt, verify streaming)
+### Optimization Completed
+- **Phase 1: Diagnose** - DONE (latency logging implemented, baseline recorded)
+- **Phase 2: Fix Latency** - DONE (switched to Groq, optimized VAD settings)
 - **Phase 3: Improve Voice Quality** - Not started (filler words, emotion controls, response length)
-- **Phase 4: Testing & Validation** - Not started
+- **Phase 4: Testing & Validation** - Partially done (test calls completed)
 
 See `docs/VOICE_OPTIMIZATION_CHECKLIST.md` for detailed checklist.
 

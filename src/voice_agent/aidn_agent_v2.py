@@ -229,13 +229,18 @@ class AIDNVoiceAgent(Agent):
     # =========================================================================
     
     @function_tool
-    async def get_available_times(self, context: RunContext) -> str:
-        """Get available appointment times for tomorrow."""
+    async def get_available_times(self, context: RunContext, day: str = "tomorrow") -> str:
+        """
+        Get available appointment times.
+
+        Args:
+            day: Which day to check availability for (default: tomorrow)
+        """
         agent_name = self.agent_info.get('agent_name', 'our agent') if self.agent_info else 'our agent'
-        
+
         # In production, this would query real availability
         # For now, return standard morning/afternoon options
-        return f"They have {agent_name} out there tomorrow around 10am and around 2pm. Which works better for ya?"
+        return f"They have {agent_name} out there {day} around 10am and around 2pm. Which works better for ya?"
 
     @function_tool
     async def confirm_appointment(
