@@ -59,6 +59,16 @@ const LeadsPage = () => {
     }
   };
 
+  const handleCallLead = async (leadId: string) => {
+    const response = await fetch('http://localhost:8000/calls/initiate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lead_id: leadId }),
+    });
+    const data = await response.json();
+    alert(`Call dispatched! ID: ${data.call_id}`);
+  };
+
   const filteredLeads = leads.filter(lead => {
     if (filters.status !== 'all' && lead.call_outcome !== filters.status) return false;
     if (filters.leadType !== 'all' && lead.lead_type !== filters.leadType) return false;
@@ -221,7 +231,10 @@ const LeadsPage = () => {
                         >
                           View
                         </button>
-                        <button className="text-blue-600 hover:text-blue-900">
+                        <button
+                          onClick={() => handleCallLead(lead.id)}
+                          className="text-blue-600 hover:text-blue-900"
+                        >
                           Call
                         </button>
                       </td>
