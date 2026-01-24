@@ -12,48 +12,28 @@
 - [x] AI conversation with casual Aiden persona
 - [x] Objection handling (16 scenarios)
 - [x] React dashboard UI
-- [x] FastAPI backend
+- [x] FastAPI backend with `/leads` and `/calls/initiate` endpoints
 - [x] PostgreSQL database
 - [x] 3-layer RAG architecture (slim prompt + RAG tools)
-- [x] **Voice Optimization - Latency reduced from 1400-2400ms → 700-800ms (50-65% faster)**
+- [x] **Voice Optimization - Latency reduced from 1400-2400ms → 700-800ms**
+- [x] **Dashboard call initiation - Click "Call" → phone rings**
+- [x] **Dashboard fetches real leads from database**
 
 ### ✅ COMPLETE: Voice Optimization (Weeks 1-2)
 **Result:** Latency reduced from 1400-2400ms → 700-800ms
 
-#### Week 1-2: Diagnose & Fix Latency - DONE
-1. **Add Latency Logging** - DONE
-   - [x] Add per-component latency logging (STT, LLM TTFT, TTS TTFB)
-   - [x] Log TTFT for each turn number (Turn 1, Turn 2, Turn 3...)
-   - [x] Record test calls with full latency data
-   - [x] Confirmed: KV caching working (Turn 2+ faster than Turn 1)
+### ✅ COMPLETE: Dashboard Integration (Week 3)
+**Result:** End-to-end call flow working
 
-2. **Switched to Groq LLM** - DONE
-   - [x] Signed up for Groq
-   - [x] Tested Groq Llama 3.3 70B and 3.1 8B
-   - [x] Switched to Groq (LLM TTFT reduced from 800-1600ms → 300-500ms)
+- [x] Add FastAPI backend (`src/api/server.py`)
+- [x] Add `GET /leads` endpoint returning real leads with UUIDs
+- [x] Add `POST /calls/initiate` endpoint with LiveKit dispatch
+- [x] Wire dashboard "Call" button to API
+- [x] Fix AIDNVoiceAgent instructions property issue
+- [x] Dashboard fetches real leads from database
 
-3. **Optimized VAD Settings** - DONE
-   - [x] Reduced min_silence_duration from 200ms → 150ms
-   - [x] Reduced endpointing delays (50ms min, 400ms max)
-   - [x] Verified streaming enabled end-to-end
-
-### 🟡 HIGH PRIORITY: Dashboard Integration (This Week)
-**Why:** YC needs to see the full workflow, not just voice calls
-
-8. **Dashboard Call Initiation** (Day 10-12)
-   - [ ] Add "Call Lead" button to dashboard leads table
-   - [ ] Wire up button to dispatch agent job via API
-   - [ ] Pass lead_id and agent_id in job metadata
-   - [ ] Show call status in real-time (calling → connected → ended)
-
-9. **Lead Database Integration** (Day 13-14)
-   - [ ] Load full lead context from database when call starts
-   - [ ] Personalize greeting with lead name/address (already partially done)
-   - [ ] Update lead status after call (call_outcome, last_called_at, call_count)
-   - [ ] Display call logs in dashboard after completion
-
-### 🟢 MEDIUM: End-to-End Booking Flow (Week 4: Jan 26-Feb 1)
-**Why:** Complete the demo story - lead → call → appointment
+### 🟡 HIGH PRIORITY: Appointment Booking (This Week)
+**Why:** Complete the demo story - lead → call → appointment → dashboard
 
 10. **Appointment Booking Integration** (Day 15-17)
     - [ ] Connect `confirm_appointment` tool to database
@@ -62,10 +42,10 @@
     - [ ] Update appointment_slots table when booking confirmed
     - [ ] Show booked appointments in dashboard
 
-11. **End-to-End Testing** (Day 18-19)
-    - [ ] Test full flow: Upload lead → Call lead → Book appointment → View in dashboard
-    - [ ] Fix any integration bugs
-    - [ ] Verify data flows correctly between components
+11. **Call Status Updates** (Day 18-19)
+    - [ ] Update lead status after call (call_outcome, last_called_at, call_count)
+    - [ ] Store call logs in database
+    - [ ] Display call history in dashboard
 
 ### 🟢 MEDIUM: Demo Preparation (Week 5: Feb 2-8)
 **Why:** Polish and prepare for YC application
@@ -101,8 +81,8 @@
 - ✅ Working outbound calls
 - ✅ AI conversation with casual persona
 - ✅ Objection handling
-- ✅ **Total latency ~700-800ms** (improved from 1400-2400ms)
-- [ ] **Dashboard call initiation** (click button → call starts)
+- ✅ **Total latency ~700-800ms**
+- ✅ **Dashboard call initiation** (click button → call starts)
 - [ ] **End-to-end booking flow** (call → appointment → dashboard)
 - [ ] **Recorded demo video** showing full workflow
 
@@ -114,55 +94,27 @@
 
 ---
 
-## ⚠️ Risk Mitigation
-
-### High Risk Items
-1. **Voice Latency** - If Groq doesn't help, may need alternative approaches
-   - **Mitigation:** Start testing Groq immediately (Day 2-3)
-   - **Backup:** Optimize prompt further, consider faster LLM models
-
-2. **Integration Bugs** - Dashboard ↔ Voice Agent ↔ Database
-   - **Mitigation:** Test each integration point separately before combining
-   - **Backup:** Have manual workarounds for demo if needed
-
-3. **Demo Day Failures** - Live calls could fail during presentation
-   - **Mitigation:** Record backup demo video with successful calls
-   - **Backup:** Have pre-recorded segments ready
-
-### Timeline Buffer
-- **Week 1-2:** Voice optimization (critical path)
-- **Week 3:** Dashboard integration (can be done in parallel with voice testing)
-- **Week 4:** End-to-end flow (polish)
-- **Week 5:** Demo prep (buffer week)
-
----
-
 ## 📅 Weekly Milestones
 
 | Week | Dates | Milestone | Status |
 |------|-------|-----------|--------|
 | **Week 1-2** | Jan 5-18 | Voice optimization | ✅ COMPLETE |
-| **Week 3** | Jan 19-25 | Dashboard integration | 🔴 In Progress |
-| **Week 4** | Jan 26-Feb 1 | End-to-end booking flow | ⏳ Pending |
+| **Week 3** | Jan 19-25 | Dashboard integration | ✅ COMPLETE |
+| **Week 4** | Jan 26-Feb 1 | Appointment booking flow | 🔴 In Progress |
 | **Week 5** | Feb 2-8 | Demo video + application | ⏳ Pending |
 | **Deadline** | **Feb 9** | **YC Application Due** | 🎯 Target |
 
 ---
 
-## 🎯 Current Focus (Jan 24-31)
+## 🎯 Current Focus (Jan 25-31)
 
-### This Week: Dashboard Integration
-- [ ] Add "Call Lead" button to dashboard
-- [ ] Wire up API to dispatch agent jobs
-- [ ] Show call status in real-time
-- [ ] Display call logs after completion
+### This Week: Appointment Booking
+- [ ] Connect `confirm_appointment` tool to database
+- [ ] Create appointment slots for agents
+- [ ] Show booked appointments in dashboard
+- [ ] Update lead status after calls
 
-### Next Week: End-to-End Flow
-- [ ] Lead database integration
-- [ ] Appointment booking integration
-- [ ] End-to-end testing
-
-### Final Week: Demo Prep
+### Next Week: Demo Prep
 - [ ] Record demo video
 - [ ] Prepare application materials
 - [ ] Final testing
@@ -171,12 +123,12 @@
 
 ## 📝 Notes
 
-- **Current Status:** Voice optimization complete (700-800ms latency)
-- **Achieved:** 50-65% latency reduction by switching to Groq + optimizing VAD
-- **Next Priority:** Dashboard integration for complete demo flow
+- **Major Milestone:** Dashboard integration complete (Jan 24)
+- **Full Flow Working:** Dashboard → API → LiveKit → Voice Agent → Phone
+- **Next Priority:** Wire appointment booking to database
 - **Buffer:** Week 5 provides buffer for unexpected issues
 
 ---
 
 **Last Updated:** January 24, 2026
-**Next Review:** End of Week 3 (Jan 25)
+**Next Review:** End of Week 4 (Feb 1)

@@ -1,16 +1,24 @@
 # AIDN Next Steps
 
 **Last Updated:** January 24, 2026
-**Status:** Voice Optimization Complete - Dashboard Integration Next
+**Status:** Dashboard Integration Complete - Appointment Booking Next
 
 ---
 
 ## Completed
 
+### January 24, 2026 - Dashboard Integration
+- [x] Add FastAPI backend (`src/api/server.py`)
+- [x] Add `GET /leads` endpoint returning real leads with UUIDs
+- [x] Add `POST /calls/initiate` endpoint with LiveKit dispatch
+- [x] Wire dashboard "Call" button to API
+- [x] Dashboard fetches real leads from database
+- [x] Fix AIDNVoiceAgent instructions property issue
+- [x] **End-to-end call flow working: Dashboard → API → LiveKit → Phone**
+
 ### January 24, 2026 - Voice Optimization
 - [x] Add per-component latency logging (STT, LLM TTFT, TTS TTFB)
-- [x] Log TTFT for each turn number
-- [x] Test and switch to Groq LLM (Llama 3.1 8B Instant)
+- [x] Switch to Groq LLM (Llama 3.1 8B Instant)
 - [x] Optimize VAD settings (min_silence=150ms, endpointing=50-400ms)
 - [x] **Reduced latency from 1400-2400ms → 700-800ms (50-65% improvement)**
 
@@ -18,42 +26,29 @@
 - [x] Delete old Twilio bridge code
 - [x] Implement LiveKit SIP outbound calling
 - [x] Test outbound calls with Telnyx
-- [x] Verify greeting and conversation flow
-- [x] Update all documentation
 
 ---
 
 ## Immediate Next Steps
 
-### 1. Voice Quality Improvements (Optional - Lower Priority)
-**Goal:** Further improve voice naturalness
+### 1. Appointment Booking Integration (HIGH PRIORITY)
+**Goal:** Complete the demo story - lead → call → appointment → dashboard
 
-#### Phase 3: Improve Voice Quality
-- [ ] Add filler words instruction to prompt: "Use umm, yeah, so, oh"
-- [ ] Enforce short responses: "Max 2 sentences, max 25 words"
-- [ ] Add natural punctuation instruction: "Use commas and periods for pauses"
-- [ ] Implement conditional filler injection when LLM takes >300ms
-- [ ] Test Cartesia emotion controls (currently using `["positivity:high", "curiosity:medium"]`)
-- [ ] Consider switching to emotive-tagged voice (e.g., Marian: `26403c37-80c1-4a1a-8692-540551ca2ae5`)
-
-**See `docs/VOICE_OPTIMIZATION_CHECKLIST.md` for complete checklist.**
-
-### 2. Dashboard Integration (HIGH PRIORITY)
-- [ ] Add "Call Lead" button to dashboard
-- [ ] Dispatch agent job when button clicked
-- [ ] Show call status in real-time
-- [ ] Display call logs after completion
-
-### 3. Lead Database Integration
-- [ ] Pass lead_id in job metadata
-- [ ] Load full lead context from database
-- [ ] Personalize greeting with lead name/address
-- [ ] Update lead status after call
-
-### 4. Appointment Booking
-- [ ] Connect book_appointment tool to database
+- [ ] Connect `confirm_appointment` tool to database
 - [ ] Create appointment slots for agents
-- [ ] Confirm bookings via agent response
+- [ ] Implement atomic booking (prevent double-booking)
+- [ ] Update appointment_slots table when booking confirmed
+- [ ] Show booked appointments in dashboard
+
+### 2. Call Status & Logging
+- [ ] Update lead status after call (call_outcome, last_called_at)
+- [ ] Store call logs in database
+- [ ] Display call history in dashboard
+
+### 3. Voice Quality Improvements (Optional - Lower Priority)
+- [ ] Add filler words instruction: "Use umm, yeah, so, oh"
+- [ ] Enforce short responses: "Max 2 sentences, max 25 words"
+- [ ] Test Cartesia emotion controls
 
 ---
 
@@ -63,7 +58,6 @@
 - [ ] Add call recording
 - [ ] Store transcripts in database
 - [ ] Implement call analytics
-- [ ] Build latency monitoring dashboard (from optimization checklist)
 
 ### Scale
 - [ ] Deploy agent to LiveKit Cloud
@@ -80,12 +74,13 @@
 ## YC Demo Prep
 
 - **Deadline:** February 9, 2026
-- **Current Status:** Ahead of schedule
+- **Days Remaining:** ~16 days
 
 ### Demo Checklist
 - [x] Working outbound calls
 - [x] AI conversation with casual persona
-- [x] Objection handling
-- [ ] Dashboard call initiation
-- [ ] End-to-end booking flow
+- [x] Objection handling (16 scenarios)
+- [x] Voice latency ~700-800ms
+- [x] **Dashboard call initiation**
+- [ ] End-to-end booking flow (appointment shows in dashboard)
 - [ ] Recorded demo video
