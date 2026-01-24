@@ -120,11 +120,10 @@ class AIDNVoiceAgent(Agent):
 
     def __init__(self, db_manager=None):
         """Initialize with slim core prompt."""
-        # Start with default prompt - updated when call context is set
-        super().__init__(
-            instructions=build_core_prompt()
-        )
-        
+        # Store instructions in private attr (parent property is read-only)
+        self._instructions = build_core_prompt()
+        super().__init__(instructions=self._instructions)
+
         self.db_manager = db_manager
         self.objection_kb = ObjectionKB()
         
@@ -140,15 +139,20 @@ class AIDNVoiceAgent(Agent):
         
         logger.info("AIDNVoiceAgent initialized with slim prompt + RAG")
 
+    @property
+    def instructions(self) -> str:
+        """Override to return dynamic instructions."""
+        return self._instructions
+
     async def set_call_context(self, lead, agent_id: UUID, agent_info: dict = None):
-        """Set the current lead and agent, rebuild slim prompt."""
+        """Set the current lead and agent context."""
         self.current_lead = lead
         self.current_agent_id = agent_id
         self.agent_info = agent_info or {}
         self.confirmation_code = generate_confirmation_code()
-        
-        # Rebuild slim prompt with lead info
-        self.instructions = build_core_prompt(
+
+        # Update internal instructions (used by tools via _get_lead_info_dict)
+        self._instructions = build_core_prompt(
             first_name=getattr(lead, 'first_name', 'there'),
             last_name=getattr(lead, 'last_name', ''),
             address=getattr(lead, 'address', 'your address'),
@@ -158,7 +162,7 @@ class AIDNVoiceAgent(Agent):
             car_description=self.agent_info.get('car_description', 'a company car'),
             confirmation_code=self.confirmation_code
         )
-        
+
         logger.info(f"Call context set for lead {getattr(lead, 'id', 'unknown')}")
         logger.info(f"Confirmation code: {self.confirmation_code}")
 
