@@ -1,13 +1,13 @@
 # AIDN Project Status
 
-**Last Updated:** January 24, 2026
-**Status:** END-TO-END CALLS WORKING - Dashboard → API → Voice Agent → Phone
+**Last Updated:** January 26, 2026
+**Status:** GOOGLE CALENDAR INTEGRATION COMPLETE - Full Booking Flow Working
 
 ---
 
-## Current State: Full Demo Flow Working
+## Current State: Full Demo Flow with Calendar Integration
 
-Dashboard "Call" button triggers real phone calls. Voice agent answers, greets lead by name, handles objections, and books appointments.
+Dashboard "Call" button triggers real phone calls. Voice agent (Aiden) greets lead by name, handles objections, books appointments, and **automatically creates Google Calendar events**.
 
 ### What's Working
 - ✅ Outbound calls via LiveKit SIP + Telnyx
@@ -22,6 +22,7 @@ Dashboard "Call" button triggers real phone calls. Voice agent answers, greets l
 - ✅ **FastAPI backend with /leads and /calls/initiate endpoints**
 - ✅ **Dashboard "Call" button triggers real calls**
 - ✅ PostgreSQL database
+- ✅ **Google Calendar integration** - appointments auto-create calendar events
 
 ---
 
@@ -34,10 +35,18 @@ Dashboard "Call" button triggers real phone calls. Voice agent answers, greets l
 | **Backend API** | ✅ WORKING | FastAPI with /leads and /calls/initiate |
 | **Database** | ✅ COMPLETE | PostgreSQL with leads, agents, appointments |
 | **Phone Provider** | ✅ WORKING | Telnyx |
+| **Calendar Integration** | ✅ WORKING | Google Calendar via service account |
 
 ---
 
 ## Recent Milestones
+
+### January 26, 2026 - Google Calendar Integration Complete
+- Added `src/voice_agent/google_calendar.py` module
+- Service account authentication (no OAuth popups)
+- `confirm_appointment` tool now creates Google Calendar events
+- Fire-and-forget: booking succeeds even if calendar fails
+- Calendar events include lead name, phone, address, confirmation code
 
 ### January 24, 2026 - End-to-End Call Flow Complete
 - Added FastAPI backend (`src/api/server.py`)
@@ -80,6 +89,7 @@ cd web-dashboard && npm run dev
 1. Open http://localhost:3000/leads
 2. Click "Call" on any lead
 3. Phone rings, Aiden greets by name
+4. Book appointment → Calendar event created automatically
 
 ---
 
@@ -96,6 +106,10 @@ SIP_OUTBOUND_TRUNK_ID=ST_...
 GROQ_API_KEY=gsk_...
 LLM_PROVIDER=groq
 GROQ_MODEL=llama-3.1-8b-instant
+
+# Google Calendar Integration
+GOOGLE_CALENDAR_CREDENTIALS_PATH=./google-calendar-credentials.json
+GOOGLE_CALENDAR_ID=your-calendar-id@gmail.com
 ```
 
 ---
@@ -114,5 +128,5 @@ GROQ_MODEL=llama-3.1-8b-instant
 ## YC Application Timeline
 
 - **Deadline:** February 9, 2026
-- **Days Remaining:** ~16 days
-- **Status:** Dashboard integration complete, booking flow next
+- **Days Remaining:** ~14 days
+- **Status:** Calendar integration complete, demo video next

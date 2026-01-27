@@ -1,8 +1,8 @@
 # AIDN Next Session Briefing
 
-**Date Prepared:** December 26, 2025
-**Session Completed:** Audio Bridge Debugging
-**Next Session Focus:** Fix TwilioAudioBridge → LiveKit Connection
+**Date Prepared:** January 26, 2026
+**Session Completed:** Google Calendar Integration
+**Next Session Focus:** Demo Video Recording & YC Application
 
 ---
 
@@ -18,69 +18,42 @@
 
 ---
 
-## 📋 SESSION SUMMARY (December 26, 2025)
+## 📋 SESSION SUMMARY (January 26, 2026)
 
-### WHAT WE FOUND
-- **Simple TTS mode works** - User heard "Hey there! This is the AI calling..."
-- **Stream mode fails** - Twilio plays "application error"
-- **WebSocket endpoint works** - Python test connects to Railway successfully
-- **Voice agent works** - Joins room, waits 30s for audio bridge, bridge never appears
+### WHAT WE COMPLETED
+- **Google Calendar integration working** - Appointments create calendar events automatically
+- Created `src/voice_agent/google_calendar.py` module
+- Service account authentication (no OAuth popups needed)
+- Fire-and-forget design (booking succeeds even if calendar API fails)
+- Integrated into `confirm_appointment` tool in voice agent
 
-### ROOT CAUSE IDENTIFIED
-**TwilioAudioBridge is NOT connecting to the LiveKit room.**
-
-When Twilio connects to Railway's WebSocket and sends "start" event:
-1. Bridge receives "start" ✅
-2. Bridge calls `connect_to_livekit()` ❌ FAILS HERE (silently)
-3. Bridge never joins LiveKit room
-4. Voice agent waits 30s, times out
-5. No audio exchanged
-
-### LIKELY CAUSES (in order)
-1. **Environment variables wrong/missing on Railway** - LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET
-2. **LiveKit RTC library issue** - Native bindings may not work on Railway's Linux
-3. **Railway WebSocket handling** - Some edge case with Twilio's client
-4. **Error silently caught** - Exception in connect_to_livekit() not visible
+### FULL DEMO FLOW NOW WORKING
+```
+Dashboard → Click "Call" → API → LiveKit → Voice Agent → Phone Call
+                                                ↓
+                                    Appointment Confirmed
+                                                ↓
+                                    Google Calendar Event Created
+```
 
 ---
 
 ## 🔥 IMMEDIATE NEXT PRIORITIES
 
-### Priority 1: Check Railway Environment Variables
-1. Login to Railway dashboard
-2. Go to aidn-production service
-3. Click Variables tab
-4. Verify these are set:
-   - `LIVEKIT_URL=wss://aidn-voice-wgu29g5y.livekit.cloud`
-   - `LIVEKIT_API_KEY=<your key>`
-   - `LIVEKIT_API_SECRET=<your secret>`
+### Priority 1: Record Demo Video
+- [ ] Record 3-5 minute demo showing full workflow
+- [ ] Include: Dashboard, call initiation, Aiden conversation, booking, calendar event
+- [ ] Edit and upload to YouTube/Vimeo
 
-### Priority 2: Check Railway Logs
-1. In Railway dashboard, go to Deployments
-2. Click current deployment
-3. View logs
-4. Make a test call: `curl -X POST https://aidn-production.up.railway.app/test-call`
-5. Look for:
-   - "🎤 WebSocket connected for room"
-   - "Twilio stream started"
-   - "Failed to connect to LiveKit"
-   - Any Python exceptions
+### Priority 2: YC Application
+- [ ] Write YC application
+- [ ] Include demo video link
+- [ ] Document key metrics
 
-### Priority 3: Add Diagnostic Endpoint (if needed)
-Add to `simple_api_server.py`:
-```python
-@app.get("/test-livekit-connection")
-async def test_livekit():
-    from src.voice_agent.twilio_audio_bridge import TwilioAudioBridge
-    bridge = TwilioAudioBridge("test-room", "test-lead", "test-agent")
-    try:
-        result = await bridge.connect_to_livekit()
-        await bridge.disconnect()
-        return {"livekit_connected": result}
-    except Exception as e:
-        import traceback
-        return {"error": str(e), "traceback": traceback.format_exc()}
-```
+### Priority 3: Final Testing
+- [ ] Run 10+ end-to-end test calls
+- [ ] Verify calendar events created correctly
+- [ ] Test edge cases
 
 ---
 
@@ -88,12 +61,12 @@ async def test_livekit():
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| **Railway API** | 🟢 Working | `https://aidn-production.up.railway.app` |
-| **Twilio Webhook** | 🟢 Working | Returns valid TwiML |
-| **Simple TTS** | 🟢 Working | User hears AI voice |
-| **Voice Agent** | 🟢 Working | Joins rooms, waits for bridge |
-| **Twilio Stream** | 🔴 Failing | "Application error" |
-| **Audio Bridge** | 🔴 Failing | Not connecting to LiveKit |
+| **Voice Agent** | ✅ Working | LiveKit SIP + Telnyx, 700-800ms latency |
+| **Dashboard** | ✅ Working | React + Next.js, real data |
+| **Backend API** | ✅ Working | FastAPI with /leads and /calls/initiate |
+| **Database** | ✅ Working | PostgreSQL |
+| **Phone Provider** | ✅ Working | Telnyx |
+| **Calendar Integration** | ✅ Working | Google Calendar via service account |
 
 ---
 
@@ -101,30 +74,11 @@ async def test_livekit():
 
 | File | Purpose |
 |------|---------|
-| `simple_api_server.py` | FastAPI with webhook + WebSocket endpoints |
-| `src/voice_agent/twilio_audio_bridge.py` | Bridges Twilio ↔ LiveKit audio |
+| `src/voice_agent/aidn_agent_v2.py` | Voice agent with `confirm_appointment` tool |
+| `src/voice_agent/google_calendar.py` | Calendar event creation module |
 | `src/voice_agent/main.py` | LiveKit voice agent worker |
-| `docs/DEBUG_ANALYSIS.md` | Full technical breakdown of issue |
-
----
-
-## 🔧 CHANGES MADE THIS SESSION
-
-### `src/voice_agent/main.py`
-- Added 30-second wait loop for audio bridge connection
-- Logs "⏳ Still waiting for audio bridge..." every 5 seconds
-- Proceeds with warning after timeout (instead of failing)
-
-### `simple_api_server.py`
-- Re-enabled `USE_STREAM_TWIML = True` (was False for testing)
-
-### `docs/PROJECT_STATUS.md`
-- Updated with December 26 session progress
-- Added root cause analysis
-
-### `docs/NEXT_STEPS.md`
-- Updated immediate priorities
-- Added specific debugging steps
+| `src/api/server.py` | FastAPI backend |
+| `google-calendar-credentials.json` | Service account key (in .gitignore) |
 
 ---
 
@@ -132,27 +86,58 @@ async def test_livekit():
 
 Before testing:
 ```bash
-# Terminal 1: Voice Agent Worker
-cd /Users/thomasroldan/Documents/GitHub/AIDN
-source .venv/bin/activate
-python3 -m src.voice_agent.main start
+# Terminal 1: Voice Agent
+python -m src.voice_agent.main dev
 
-# The API server runs on Railway, not locally
-# Twilio webhook points to: https://aidn-production.up.railway.app/twilio-webhook
+# Terminal 2: API Server
+uvicorn src.api.server:app --reload --port 8000
+
+# Terminal 3: Dashboard
+cd web-dashboard && npm run dev
 ```
 
 ---
 
-## 🎯 SUCCESS CRITERIA
+## 🔑 ENVIRONMENT VARIABLES REQUIRED
 
-Audio bridge is fixed when:
-1. ✅ Test call connects
-2. ✅ User hears TTS intro ("Hey, please hold...")
-3. ✅ Voice agent joins LiveKit room
-4. 🔴 TwilioAudioBridge joins same room → **THIS IS FAILING**
-5. 🔴 AI speaks through phone → Blocked by #4
-6. 🔴 User can talk back → Blocked by #4
+```bash
+DATABASE_URL=postgresql://...
+DEEPGRAM_API_KEY=...
+CARTESIA_API_KEY=sk_car_...
+LIVEKIT_URL=wss://your-project.livekit.cloud
+LIVEKIT_API_KEY=...
+LIVEKIT_API_SECRET=...
+SIP_OUTBOUND_TRUNK_ID=ST_...
+GROQ_API_KEY=gsk_...
+LLM_PROVIDER=groq
+GROQ_MODEL=llama-3.1-8b-instant
+
+# Google Calendar Integration
+GOOGLE_CALENDAR_CREDENTIALS_PATH=./google-calendar-credentials.json
+GOOGLE_CALENDAR_ID=your-calendar-id@gmail.com
+```
 
 ---
 
-**READY TO DEBUG AUDIO BRIDGE** 🔧
+## 🎯 SUCCESS CRITERIA FOR YC DEMO
+
+- [x] Working outbound calls
+- [x] AI conversation with casual Aiden persona
+- [x] Objection handling (16 scenarios)
+- [x] Voice latency ~700-800ms
+- [x] Dashboard call initiation
+- [x] Google Calendar integration
+- [ ] Recorded demo video
+- [ ] YC application submitted
+
+---
+
+## 📅 TIMELINE
+
+- **Today:** January 26, 2026
+- **YC Deadline:** February 9, 2026
+- **Days Remaining:** ~14 days
+
+---
+
+**READY FOR DEMO VIDEO RECORDING** 🎬
