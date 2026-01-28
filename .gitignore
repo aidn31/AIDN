@@ -89,3 +89,7 @@ uploads/
 
 # LiveKit
 *.livekit.toml
+
+# Credentials & Secrets (DO NOT COMMIT)
+google-calendar-credentials.json
+*-credentials.json

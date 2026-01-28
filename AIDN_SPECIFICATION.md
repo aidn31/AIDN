@@ -491,6 +491,103 @@ For each active agent:
 
 ---
 
+### 9. MVP Scope & Post-MVP Features
+
+#### 9.1 MVP Scope (YC Demo Ready)
+
+**Core Capabilities:**
+- ✅ Single concurrent call (one call at a time)
+- ✅ Basic lead management (upload, categorize, prioritize)
+- ✅ AIDN voice agent with natural conversation flow
+- ✅ Appointment booking with Google Calendar sync
+- ✅ Single agent support
+- ✅ Dashboard UI (leads, analytics, call history)
+- ✅ Territory management (county/zip-based)
+- ✅ Basic objection handling via RAG
+- ✅ Call outcome tracking
+
+**Performance Targets (MVP):**
+- Voice latency: <1000ms total (STT + LLM + TTS)
+- Connection rate: 10%+
+- Booking rate: 5%+
+- Show rate: 70%+
+
+**Technical Stack (MVP):**
+- LiveKit SIP (voice infrastructure)
+- Groq Llama 3.1 8B Instant (LLM)
+- Deepgram Nova-2 (STT)
+- Cartesia Sonic 2 (TTS)
+- FastAPI backend
+- Next.js frontend
+- PostgreSQL database
+
+#### 9.2 Post-MVP Features (After YC)
+
+**Scalability:**
+- ⏳ 100+ concurrent calls (requires infrastructure scaling)
+- ⏳ Multi-IMO support (white-label dashboard)
+- ⏳ Advanced call distribution (load balancing)
+- ⏳ Real-time call monitoring dashboard
+
+**Advanced Features:**
+- ⏳ PDF/OCR lead upload
+- ⏳ SMS follow-up integration
+- ⏳ Advanced analytics (ML-powered insights)
+- ⏳ Mobile app for agents
+- ⏳ API for third-party integrations
+- ⏳ Call recording & transcript storage
+- ⏳ A/B testing for scripts
+
+**Compliance & Security:**
+- ⏳ SOC 2 Type II certification
+- ⏳ HIPAA compliance
+- ⏳ Advanced DNC list management
+- ⏳ State-specific regulation enforcement
+
+**Performance Optimizations:**
+- ⏳ Voice latency: <600ms (target for scale)
+- ⏳ LLM prompt caching optimization
+- ⏳ CDN for TTS response caching
+- ⏳ Database query optimization at scale
+
+#### 9.3 Implementation Impact: Concurrent Calls
+
+**Current State (MVP):**
+- AIDN makes one call at a time
+- Simple queue processing: pick lead → call → log outcome → next lead
+- Single LiveKit room per call
+- Minimal infrastructure requirements
+
+**Scaling to 100+ Concurrent Calls (Post-MVP):**
+
+**Infrastructure Changes Required:**
+1. **LiveKit Cloud:** Upgrade from free tier to production tier
+2. **Database:** Connection pooling, read replicas, query optimization
+3. **LLM Provider:** Groq rate limit increase (or multi-provider failover)
+4. **TTS Provider:** Cartesia concurrent stream limits
+5. **Orchestration:** Queue management system (Celery/Redis)
+
+**Code Changes Required:**
+1. **Async Call Manager:** Spawn multiple call tasks simultaneously
+2. **Lead Locking:** Prevent duplicate calls to same lead
+3. **Resource Pooling:** Manage LLM/TTS API connections
+4. **Monitoring:** Real-time call status dashboard
+5. **Error Handling:** Graceful degradation if services hit limits
+
+**Cost Impact:**
+- LiveKit Cloud: ~$0.005/minute → ~$300-500/month at 100 concurrent
+- Groq API: ~$0.10/1M tokens → ~$50-100/month
+- Database: Upgrade from free tier → ~$25-50/month
+- **Total estimated:** ~$400-650/month infrastructure at 100 concurrent calls
+
+**Timeline:**
+- MVP: Single call capability (current)
+- Post-YC Month 1-2: Test 5-10 concurrent calls
+- Post-YC Month 3-4: Scale to 50+ concurrent calls
+- Post-YC Month 5-6: Scale to 100+ concurrent calls
+
+---
+
 ### 8. Technical Requirements
 
 #### 8.1 Infrastructure
@@ -508,6 +605,13 @@ For each active agent:
 - Role-based access control
 
 #### 8.3 Scalability Targets
+
+**MVP Targets:**
+- Single concurrent call
+- Handle 1,000+ leads per IMO
+- 99% uptime
+
+**Post-MVP Targets:**
 - Support 100+ concurrent calls
 - Handle 10,000+ leads per IMO
 - 99.9% uptime SLA

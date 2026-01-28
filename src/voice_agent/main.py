@@ -172,7 +172,7 @@ async def entrypoint(ctx: JobContext):
         ),
         # KEY LATENCY SETTINGS - respond faster after user stops speaking
         min_endpointing_delay=0.05,  # 50ms min delay (was 0.1)
-        max_endpointing_delay=0.4,  # 400ms max delay (was 0.8)
+        max_endpointing_delay=0.2,  # 200ms max delay (was 0.4) - REDUCED to fix pause issue
     )
 
     # Initialize latency tracker for this call
