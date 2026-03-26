@@ -93,3 +93,10 @@ uploads/
 # Credentials & Secrets (DO NOT COMMIT)
 google-calendar-credentials.json
 *-credentials.json
+
+.env
+.env.local
+.env.production
+.env.development
+.env*.local
+*.env
